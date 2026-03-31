@@ -902,7 +902,7 @@ async def marketing_stats():
     posts_resp = requests.get(
         f"https://graph.facebook.com/v19.0/{page_id}/posts",
         params={
-            "fields": "message,created_time,permalink_url,likes.summary(true),comments.summary(true),shares",
+            "fields": "id,message,created_time,permalink_url,likes.summary(true),comments.summary(true),shares,insights.metric(post_impressions_unique){values}",
             "limit": 20,
             "access_token": token
         }
