@@ -2,5 +2,5 @@
 builder = "NIXPACKS"
 
 [deploy]
-startCommand = "python3.12 server.py"
+startCommand = "python3 server.py"
 healthcheckPath = "/"
