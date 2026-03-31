@@ -211,28 +211,49 @@ function MarketingTab({ api }: { api: string }) {
           </div>
         )}
         {posts && posts.length === 0 && <p className="text-slate-700 text-[10px] text-center py-8">ไม่พบโพสต์</p>}
-        {posts && posts.length > 0 && (
-          <div className="space-y-2">
-            {posts.map((post, i) => {
-              const likes = (post.likes as Record<string, unknown>)?.summary as Record<string, unknown>;
-              const comments = (post.comments as Record<string, unknown>)?.summary as Record<string, unknown>;
-              const shares = post.shares as Record<string, unknown>;
-              const date = post.created_time ? new Date(String(post.created_time)).toLocaleDateString("th-TH", { day: "numeric", month: "short" }) : "";
-              return (
-                <div key={i} className="flex items-center gap-3 rounded-xl bg-white/[0.02] border border-white/[0.04] px-4 py-3 hover:bg-white/[0.04] transition-all">
-                  <span className="text-[9px] font-black text-slate-700 w-5 shrink-0">{i + 1}</span>
-                  <p className="flex-1 text-[10px] text-slate-400 line-clamp-1 min-w-0">{String(post.message || "—").slice(0, 100)}</p>
-                  <span className="text-[8px] text-slate-700 shrink-0">{date}</span>
-                  <div className="flex items-center gap-3 shrink-0">
-                    <span className="text-[9px] font-black" style={{ color: "#1877F2" }}>👍 {String(likes?.total_count ?? 0)}</span>
-                    <span className="text-[9px] font-black" style={{ color: "#f59e0b" }}>💬 {String(comments?.total_count ?? 0)}</span>
-                    <span className="text-[9px] font-black" style={{ color: "#34d399" }}>🔁 {String(shares?.count ?? 0)}</span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+        {posts && posts.length > 0 && (() => {
+          const ranked = [...posts].map((post) => {
+            const likes = (post.likes as Record<string, unknown>)?.summary as Record<string, unknown>;
+            const comments = (post.comments as Record<string, unknown>)?.summary as Record<string, unknown>;
+            const shares = post.shares as Record<string, unknown>;
+            const score = Number(likes?.total_count ?? 0) + Number(comments?.total_count ?? 0) * 2 + Number(shares?.count ?? 0) * 3;
+            return { ...post, _likes: Number(likes?.total_count ?? 0), _comments: Number(comments?.total_count ?? 0), _shares: Number(shares?.count ?? 0), _score: score };
+          }).sort((a, b) => b._score - a._score);
+
+          const medals = ["🥇", "🥈", "🥉"];
+
+          return (
+            <div className="space-y-2">
+              {ranked.map((post, i) => {
+                const date = post.created_time ? new Date(String(post.created_time)).toLocaleDateString("th-TH", { day: "numeric", month: "short" }) : "";
+                const url = String(post.permalink_url || "");
+                return (
+                  <a
+                    key={i}
+                    href={url || undefined}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center gap-3 rounded-xl border px-4 py-3 transition-all cursor-pointer"
+                    style={{
+                      backgroundColor: i === 0 ? "#f59e0b08" : "rgba(255,255,255,0.01)",
+                      borderColor: i === 0 ? "#f59e0b30" : "rgba(255,255,255,0.04)",
+                    }}
+                  >
+                    <span className="text-base w-6 shrink-0 text-center">{medals[i] ?? <span className="text-[9px] font-black text-slate-700">{i + 1}</span>}</span>
+                    <p className="flex-1 text-[10px] text-slate-400 line-clamp-1 min-w-0 hover:text-white transition-colors">{String(post.message || "—").slice(0, 100)}</p>
+                    <span className="text-[8px] text-slate-700 shrink-0">{date}</span>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <span className="text-[9px] font-black" style={{ color: "#1877F2" }}>👍 {post._likes}</span>
+                      <span className="text-[9px] font-black" style={{ color: "#f59e0b" }}>💬 {post._comments}</span>
+                      <span className="text-[9px] font-black" style={{ color: "#34d399" }}>🔁 {post._shares}</span>
+                      <span className="text-[8px] text-slate-600">⚡{post._score}</span>
+                    </div>
+                  </a>
+                );
+              })}
+            </div>
+          );
+        })()}
       </section>
 
       {/* Bottom Row */}

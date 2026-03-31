@@ -898,12 +898,12 @@ async def marketing_stats():
         }
     ).json()
 
-    # โพสต์ล่าสุด 10 อัน
+    # โพสต์ล่าสุด 20 อัน (เอามาจัดอันดับ)
     posts_resp = requests.get(
         f"https://graph.facebook.com/v19.0/{page_id}/posts",
         params={
-            "fields": "message,created_time,likes.summary(true),comments.summary(true),shares",
-            "limit": 10,
+            "fields": "message,created_time,permalink_url,likes.summary(true),comments.summary(true),shares",
+            "limit": 20,
             "access_token": token
         }
     ).json()
