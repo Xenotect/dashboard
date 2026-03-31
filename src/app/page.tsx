@@ -225,7 +225,7 @@ function MarketingTab({ api }: { api: string }) {
             const parts = rawId.split("_");
             const fallbackUrl = parts.length === 2 ? `https://www.facebook.com/permalink.php?story_fbid=${parts[1]}&id=${parts[0]}` : "";
             const url = String(post.permalink_url || fallbackUrl);
-            return { ...post, _likes: Number(likes?.total_count ?? 0), _comments: Number(comments?.total_count ?? 0), _shares: Number(shares?.count ?? 0), _score: score, _impressions: impressions, _url: url, _date: String(post.created_time ?? "") };
+            return { ...post, _likes: Number(likes?.total_count ?? 0), _comments: Number(comments?.total_count ?? 0), _shares: Number(shares?.count ?? 0), _score: score, _impressions: impressions, _url: url, _date: String(post.created_time ?? ""), _message: String(post.message ?? "—") };
           }).sort((a, b) => b._score - a._score);
 
           const medals = ["🥇", "🥈", "🥉"];
@@ -248,7 +248,7 @@ function MarketingTab({ api }: { api: string }) {
                     }}
                   >
                     <span className="text-base w-6 shrink-0 text-center">{i < 3 ? medals[i] : <span className="text-[9px] font-black text-slate-700">{i + 1}</span>}</span>
-                    <p className="flex-1 text-[10px] text-slate-400 line-clamp-1 min-w-0 hover:text-white transition-colors">{String(post.message || "—").slice(0, 100)}</p>
+                    <p className="flex-1 text-[10px] text-slate-400 line-clamp-1 min-w-0 hover:text-white transition-colors">{post._message.slice(0, 100)}</p>
                     <span className="text-[8px] text-slate-700 shrink-0">{date}</span>
                     <div className="flex items-center gap-3 shrink-0">
                       <span className="text-[9px] font-black" style={{ color: "#a78bfa" }}>👁 {post._impressions.toLocaleString()}</span>
