@@ -9,7 +9,7 @@ from crewai import Agent, Task, Crew, Process, LLM
 from datetime import datetime, timedelta
 from openai import OpenAI
 from dotenv import load_dotenv
-from passlib.context import CryptContext
+import bcrypt
 from jose import JWTError, jwt
 
 load_dotenv()  # โหลด .env file อัตโนมัติ
@@ -23,7 +23,6 @@ ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_HOURS = 24
 USERS_FILE = os.path.join(BASE_DIR, "users.json")
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 bearer_scheme = HTTPBearer(auto_error=False)
 
 def load_users():
@@ -42,7 +41,7 @@ def ensure_passwords_hashed():
     changed = False
     for u in users:
         if not u["password"].startswith("$2b$"):
-            u["password"] = pwd_context.hash(u["password"])
+            u["password"] = bcrypt.hashpw(u["password"].encode(), bcrypt.gensalt()).decode()
             changed = True
     if changed:
         save_users(users)
@@ -52,7 +51,7 @@ ensure_passwords_hashed()
 def authenticate_user(username: str, password: str):
     users = load_users()
     for u in users:
-        if u["username"] == username and pwd_context.verify(password, u["password"]):
+        if u["username"] == username and bcrypt.checkpw(password.encode(), u["password"].encode()):
             return u
     return None
 

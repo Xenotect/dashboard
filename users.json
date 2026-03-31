@@ -1,5 +1,17 @@
 [
-  {"username": "admin", "password": "admin1234", "role": "admin"},
-  {"username": "mod1", "password": "mod1234", "role": "mod"},
-  {"username": "member1", "password": "member1234", "role": "member"}
+  {
+    "username": "admin",
+    "password": "$2b$12$MmxvVX3HfyKAO5Cu7MUMBuWpE7PSRvbBRITMPdqBTB8Z9HfJ4Uc9y",
+    "role": "admin"
+  },
+  {
+    "username": "mod1",
+    "password": "$2b$12$7WClFT0N5RkmSWyUt0cNoeh80FRKqdA/H5B9QHHN26qGwe55pK616",
+    "role": "mod"
+  },
+  {
+    "username": "member1",
+    "password": "$2b$12$435EpnCmNoz2qg9c079DpeMpdjuRGxJO4zobz0JeSmjMrG96norba",
+    "role": "member"
+  }
 ]
