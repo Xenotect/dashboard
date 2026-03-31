@@ -1,6 +1,7 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from agents import xeno_crew
+from agents import ask_xeno
+import asyncio
 import os
 import json
 from datetime import datetime
@@ -49,12 +50,8 @@ def ask_xeno():
     user_command = data.get('command')
 
     try:
-        result = xeno_crew.kickoff(inputs={'command': user_command})
-        
-        # ✅ บันทึกผลลัพธ์ลง Log ทันทีที่ทำงานเสร็จ
-        save_mission_log("Xeno Intelligence", user_command, str(result))
-        
-        return jsonify({"status": "success", "result": str(result)})
+        result = asyncio.run(ask_xeno(data.copy()))
+        return jsonify({"status": "success", "result": result.get("result", "")})
     except Exception as e:
         error_message = str(e)
         if "credit balance is too low" in error_message.lower():
