@@ -152,58 +152,81 @@ function MarketingTab({ api }: { api: string }) {
   ];
 
   return (
-    <div className="mt-6 space-y-6">
+    <div className="space-y-5">
 
-      {/* Header + Refresh */}
-      <div className="flex items-center justify-between">
-        <div>
-          <p className="text-white font-black text-lg">{page ? String(page.name) : "KUDOS"}</p>
-          <p className="text-[9px] text-slate-600 uppercase tracking-widest">Facebook Page Analytics</p>
+      {/* Header */}
+      <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-5 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ backgroundColor: "#f59e0b20" }}>📊</div>
+          <div>
+            <p className="text-white font-black text-base leading-none">{page ? String(page.name) : "Marketing Setup"}</p>
+            <p className="text-[9px] text-amber-500/60 uppercase tracking-widest mt-1">Facebook Page Analytics</p>
+          </div>
         </div>
         <button
           onClick={fetchStats}
           disabled={loading}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all"
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all disabled:opacity-50"
           style={{ backgroundColor: "#f59e0b", color: "#000" }}
         >
-          {loading ? "⏳ กำลังโหลด..." : "🔄 เรียกข้อมูล Real-time"}
+          {loading ? "⏳ Loading..." : "🔄 Refresh"}
         </button>
       </div>
 
-      {error && <p className="text-red-400 text-[10px]">{error}</p>}
-
-      {/* Page Overview */}
-      <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
-        <p className="text-[9px] font-black uppercase tracking-widest mb-4" style={{ color: "#f59e0b" }}>📊 Page Overview</p>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {overviewCards.map((card) => (
-            <div key={card.label} className="rounded-xl bg-white/[0.03] border border-white/5 p-4 text-center">
-              <p className="text-[8px] uppercase tracking-widest text-slate-600 mb-2">{card.label}</p>
-              <p className="text-2xl font-black text-white">{String(card.value)}</p>
-            </div>
-          ))}
+      {error && (
+        <div className="rounded-xl border border-red-500/20 bg-red-500/5 px-4 py-3">
+          <p className="text-red-400 text-[10px]">⚠ {error}</p>
         </div>
-      </section>
+      )}
+
+      {/* Overview Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {[
+          { label: "Followers", value: page?.followers_count, icon: "👥", color: "#1877F2" },
+          { label: "Fan Count", value: page?.fan_count, icon: "❤️", color: "#ef4444" },
+          { label: "Impressions 7d", value: insights?.page_impressions, icon: "👁️", color: "#a78bfa" },
+          { label: "Engaged 7d", value: insights?.page_engaged_users, icon: "⚡", color: "#34d399" },
+        ].map((card) => (
+          <div key={card.label} className="rounded-2xl border border-white/5 bg-white/[0.02] p-5">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-[8px] uppercase tracking-widest text-slate-600">{card.label}</p>
+              <span className="text-base">{card.icon}</span>
+            </div>
+            <p className="text-3xl font-black" style={{ color: card.value !== undefined ? card.color : "#1e293b" }}>
+              {card.value !== undefined ? Number(card.value).toLocaleString() : "—"}
+            </p>
+          </div>
+        ))}
+      </div>
 
       {/* Post Performance */}
-      <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
-        <p className="text-[9px] font-black uppercase tracking-widest mb-4" style={{ color: "#f59e0b" }}>📝 Post Performance (10 ล่าสุด)</p>
-        {!posts && <p className="text-slate-700 text-[10px] text-center py-4">กด "เรียกข้อมูล" เพื่อโหลด</p>}
-        {posts && posts.length === 0 && <p className="text-slate-700 text-[10px] text-center py-4">ไม่พบโพสต์</p>}
+      <section className="rounded-2xl border border-white/5 bg-white/[0.02] p-5">
+        <div className="flex items-center gap-2 mb-4">
+          <div className="w-1 h-4 rounded-full" style={{ backgroundColor: "#f59e0b" }} />
+          <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">Post Performance — 10 ล่าสุด</p>
+        </div>
+        {!posts && (
+          <div className="py-8 text-center">
+            <p className="text-slate-700 text-[10px]">กด Refresh เพื่อโหลดข้อมูล</p>
+          </div>
+        )}
+        {posts && posts.length === 0 && <p className="text-slate-700 text-[10px] text-center py-8">ไม่พบโพสต์</p>}
         {posts && posts.length > 0 && (
           <div className="space-y-2">
             {posts.map((post, i) => {
               const likes = (post.likes as Record<string, unknown>)?.summary as Record<string, unknown>;
               const comments = (post.comments as Record<string, unknown>)?.summary as Record<string, unknown>;
               const shares = post.shares as Record<string, unknown>;
+              const date = post.created_time ? new Date(String(post.created_time)).toLocaleDateString("th-TH", { day: "numeric", month: "short" }) : "";
               return (
-                <div key={i} className="flex items-start gap-3 rounded-xl bg-white/[0.03] border border-white/5 p-3">
-                  <span className="text-slate-600 text-[9px] w-4 shrink-0">{i + 1}</span>
-                  <p className="flex-1 text-[10px] text-slate-400 line-clamp-2">{String(post.message || "—").slice(0, 80)}</p>
-                  <div className="flex gap-3 shrink-0 text-[9px]">
-                    <span style={{ color: "#1877F2" }}>👍 {String(likes?.total_count ?? 0)}</span>
-                    <span style={{ color: "#f59e0b" }}>💬 {String(comments?.total_count ?? 0)}</span>
-                    <span style={{ color: "#34d399" }}>🔁 {String(shares?.count ?? 0)}</span>
+                <div key={i} className="flex items-center gap-3 rounded-xl bg-white/[0.02] border border-white/[0.04] px-4 py-3 hover:bg-white/[0.04] transition-all">
+                  <span className="text-[9px] font-black text-slate-700 w-5 shrink-0">{i + 1}</span>
+                  <p className="flex-1 text-[10px] text-slate-400 line-clamp-1 min-w-0">{String(post.message || "—").slice(0, 100)}</p>
+                  <span className="text-[8px] text-slate-700 shrink-0">{date}</span>
+                  <div className="flex items-center gap-3 shrink-0">
+                    <span className="text-[9px] font-black" style={{ color: "#1877F2" }}>👍 {String(likes?.total_count ?? 0)}</span>
+                    <span className="text-[9px] font-black" style={{ color: "#f59e0b" }}>💬 {String(comments?.total_count ?? 0)}</span>
+                    <span className="text-[9px] font-black" style={{ color: "#34d399" }}>🔁 {String(shares?.count ?? 0)}</span>
                   </div>
                 </div>
               );
@@ -212,21 +235,29 @@ function MarketingTab({ api }: { api: string }) {
         )}
       </section>
 
-      {/* Ads Overview */}
-      <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
-        <p className="text-[9px] font-black uppercase tracking-widest mb-4" style={{ color: "#f59e0b" }}>📣 Ads Overview</p>
-        <div className="rounded-xl bg-white/[0.03] border border-white/5 p-6 text-center">
-          <p className="text-slate-700 text-[10px]">— Coming Soon —</p>
-        </div>
-      </section>
-
-      {/* AI Analyst */}
-      <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
-        <p className="text-[9px] font-black uppercase tracking-widest mb-4" style={{ color: "#f59e0b" }}>🤖 AI Analyst & Strategy</p>
-        <div className="rounded-xl bg-white/[0.03] border border-white/5 p-6 text-center">
-          <p className="text-slate-700 text-[10px]">— Coming Soon —</p>
-        </div>
-      </section>
+      {/* Bottom Row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <section className="rounded-2xl border border-white/5 bg-white/[0.02] p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-1 h-4 rounded-full" style={{ backgroundColor: "#f59e0b" }} />
+            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">📣 Ads Overview</p>
+          </div>
+          <div className="py-8 text-center">
+            <p className="text-2xl mb-2">📣</p>
+            <p className="text-slate-700 text-[9px] uppercase tracking-widest">Coming Soon</p>
+          </div>
+        </section>
+        <section className="rounded-2xl border border-white/5 bg-white/[0.02] p-5">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="w-1 h-4 rounded-full" style={{ backgroundColor: "#f59e0b" }} />
+            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">🤖 AI Analyst & Strategy</p>
+          </div>
+          <div className="py-8 text-center">
+            <p className="text-2xl mb-2">🤖</p>
+            <p className="text-slate-700 text-[9px] uppercase tracking-widest">Coming Soon</p>
+          </div>
+        </section>
+      </div>
 
     </div>
   );
