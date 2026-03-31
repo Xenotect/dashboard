@@ -490,6 +490,17 @@ export default function Home() {
           >
             📘 Facebook
           </button>
+          <button
+            onClick={() => handleSystemSwitch("marketing")}
+            className="flex items-center gap-2 px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all duration-200"
+            style={
+              activeSystem === "marketing"
+                ? { backgroundColor: "#f59e0b", color: "#fff", boxShadow: "0 4px 16px #f59e0b55" }
+                : { color: "#475569" }
+            }
+          >
+            📊 Marketing
+          </button>
         </div>
 
         {/* DEPARTMENTS — Game Dev: always open / Facebook: toggle */}
@@ -1191,6 +1202,50 @@ export default function Home() {
               )}
             </div>
           )}
+        </div>
+      )}
+
+      {/* MARKETING SETUP */}
+      {activeSystem === "marketing" && (
+        <div className="mt-6 space-y-6">
+
+          {/* Page Overview */}
+          <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
+            <p className="text-[9px] font-black uppercase tracking-widest mb-4" style={{ color: "#f59e0b" }}>📊 Page Overview</p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              {["Followers", "Reach (7 วัน)", "Impressions", "Engagement"].map((label) => (
+                <div key={label} className="rounded-xl bg-white/[0.03] border border-white/5 p-4 text-center">
+                  <p className="text-[8px] uppercase tracking-widest text-slate-600 mb-2">{label}</p>
+                  <p className="text-2xl font-black text-slate-700">—</p>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Post Performance */}
+          <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
+            <p className="text-[9px] font-black uppercase tracking-widest mb-4" style={{ color: "#f59e0b" }}>📝 Post Performance</p>
+            <div className="rounded-xl bg-white/[0.03] border border-white/5 p-6 text-center">
+              <p className="text-slate-700 text-[10px]">— Coming Soon —</p>
+            </div>
+          </section>
+
+          {/* Ads Overview */}
+          <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
+            <p className="text-[9px] font-black uppercase tracking-widest mb-4" style={{ color: "#f59e0b" }}>📣 Ads Overview</p>
+            <div className="rounded-xl bg-white/[0.03] border border-white/5 p-6 text-center">
+              <p className="text-slate-700 text-[10px]">— Coming Soon —</p>
+            </div>
+          </section>
+
+          {/* AI Analyst */}
+          <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
+            <p className="text-[9px] font-black uppercase tracking-widest mb-4" style={{ color: "#f59e0b" }}>🤖 AI Analyst & Strategy</p>
+            <div className="rounded-xl bg-white/[0.03] border border-white/5 p-6 text-center">
+              <p className="text-slate-700 text-[10px]">— Coming Soon —</p>
+            </div>
+          </section>
+
         </div>
       )}
 
