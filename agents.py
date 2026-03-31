@@ -796,7 +796,9 @@ async def fb_post(data: dict):
     from datetime import timezone
     caption = data.get("caption", "").strip()
     footer = data.get("footer", "").strip()
-    file_id = data.get("file_id")
+    import json as _json
+    file_ids_raw = data.get("file_ids")
+    file_ids = _json.loads(file_ids_raw) if file_ids_raw else []
     scheduled_time = data.get("scheduled_time", "").strip()  # ISO string e.g. "2026-03-31T15:00"
 
     page_id = os.environ.get("FB_PAGE_ID")
@@ -822,14 +824,14 @@ async def fb_post(data: dict):
         except ValueError:
             return {"success": False, "error": "รูปแบบเวลาไม่ถูกต้อง"}
 
-    if file_id:
-        image_url = f"https://drive.google.com/uc?export=download&id={file_id}"
-        image_resp = requests.get(image_url, timeout=30)
-        if image_resp.status_code != 200:
-            return {"success": False, "error": "ดาวน์โหลดรูปจาก Google Drive ไม่สำเร็จ"}
-
-        if scheduled_unix:
-            # Step 1: Upload รูปแบบ unpublished เพื่อให้ได้ photo_id
+    if file_ids:
+        # อัปโหลดรูปทุกใบแบบ unpublished ก่อน
+        photo_ids = []
+        for fid in file_ids:
+            image_url = f"https://drive.google.com/uc?export=download&id={fid}"
+            image_resp = requests.get(image_url, timeout=30)
+            if image_resp.status_code != 200:
+                return {"success": False, "error": f"ดาวน์โหลดรูป {fid} ไม่สำเร็จ"}
             upload_resp = requests.post(
                 f"https://graph.facebook.com/v19.0/{page_id}/photos",
                 data={"published": "false", "access_token": access_token},
@@ -838,28 +840,21 @@ async def fb_post(data: dict):
             upload_data = upload_resp.json()
             if "id" not in upload_data:
                 return {"success": False, "error": upload_data.get("error", {}).get("message", "อัปโหลดรูปไม่สำเร็จ")}
+            photo_ids.append({"media_fbid": upload_data["id"]})
 
-            photo_id = upload_data["id"]
+        post_data = {
+            "message": full_message,
+            "attached_media": _json.dumps(photo_ids),
+            "access_token": access_token,
+        }
+        if scheduled_unix:
+            post_data["published"] = "false"
+            post_data["scheduled_publish_time"] = str(scheduled_unix)
 
-            # Step 2: สร้าง scheduled feed post โดย attach photo_id
-            import json as _json
-            resp = requests.post(
-                f"https://graph.facebook.com/v19.0/{page_id}/feed",
-                data={
-                    "message": full_message,
-                    "attached_media": _json.dumps([{"media_fbid": photo_id}]),
-                    "published": "false",
-                    "scheduled_publish_time": str(scheduled_unix),
-                    "access_token": access_token,
-                },
-            )
-        else:
-            # โพสต์ทันที
-            resp = requests.post(
-                f"https://graph.facebook.com/v19.0/{page_id}/photos",
-                data={"message": full_message, "access_token": access_token},
-                files={"source": ("image.jpg", image_resp.content, "image/jpeg")},
-            )
+        resp = requests.post(
+            f"https://graph.facebook.com/v19.0/{page_id}/feed",
+            data=post_data,
+        )
     else:
         post_data = {"message": full_message, "access_token": access_token}
         if scheduled_unix:

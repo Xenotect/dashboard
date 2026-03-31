@@ -153,7 +153,7 @@ export default function Home() {
   const [activeFolderIdx, setActiveFolderIdx] = useState<number | null>(null);
   const [driveImages, setDriveImages] = useState<{ id: string; name: string; previewUrl: string }[]>([]);
   const [driveLoading, setDriveLoading] = useState(false);
-  const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
+  const [selectedImageIds, setSelectedImageIds] = useState<string[]>([]);
   const [fbPostLoading, setFbPostLoading] = useState(false);
   const [fbPostResult, setFbPostResult] = useState<{ success: boolean; message: string } | null>(null);
   const [fbSmartLoading, setFbSmartLoading] = useState(false);
@@ -359,7 +359,7 @@ export default function Home() {
       const body: Record<string, string | null> = {
         caption: fbCaption,
         footer: fbFooter,
-        file_id: selectedImageId,
+        file_ids: JSON.stringify(selectedImageIds),
       };
       if (scheduleEnabled && scheduledTime) {
         body.scheduled_time = scheduledTime;
@@ -1009,11 +1009,11 @@ export default function Home() {
                     {driveImages.map((img) => (
                       <button
                         key={img.id}
-                        onClick={() => setSelectedImageId(selectedImageId === img.id ? null : img.id)}
+                        onClick={() => setSelectedImageIds((prev) => prev.includes(img.id) ? prev.filter((id) => id !== img.id) : [...prev, img.id])}
                         className="relative rounded-xl overflow-hidden aspect-square border-2 transition-all"
                         style={{
-                          borderColor: selectedImageId === img.id ? "#1877F2" : "transparent",
-                          boxShadow: selectedImageId === img.id ? "0 0 12px #1877F255" : "none",
+                          borderColor: selectedImageIds.includes(img.id) ? "#1877F2" : "transparent",
+                          boxShadow: selectedImageIds.includes(img.id) ? "0 0 12px #1877F255" : "none",
                         }}
                       >
                         <img
@@ -1025,9 +1025,9 @@ export default function Home() {
                             e.currentTarget.parentElement!.style.backgroundColor = "#1e293b";
                           }}
                         />
-                        {selectedImageId === img.id && (
+                        {selectedImageIds.includes(img.id) && (
                           <div className="absolute inset-0 flex items-center justify-center" style={{ backgroundColor: "#1877F240" }}>
-                            <span className="text-white text-xl">✓</span>
+                            <span className="text-white text-xl font-black">{selectedImageIds.indexOf(img.id) + 1}</span>
                           </div>
                         )}
                       </button>
@@ -1044,12 +1044,17 @@ export default function Home() {
               {(fbCaption || fbFooter) && (
                 <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
                   <p className="text-[9px] font-black uppercase tracking-widest mb-3 text-slate-600">Preview</p>
-                  {selectedImageId && (
-                    <img
-                      src={driveImages.find((i) => i.id === selectedImageId)?.previewUrl}
-                      alt="selected"
-                      className="w-full rounded-xl mb-3 object-cover max-h-40"
-                    />
+                  {selectedImageIds.length > 0 && (
+                    <div className="flex gap-2 mb-3 flex-wrap">
+                      {selectedImageIds.map((id) => (
+                        <img
+                          key={id}
+                          src={driveImages.find((i) => i.id === id)?.previewUrl}
+                          alt="selected"
+                          className="rounded-xl object-cover max-h-24 flex-1 min-w-0"
+                        />
+                      ))}
+                    </div>
                   )}
                   <p className="text-xs text-slate-300 whitespace-pre-wrap leading-relaxed">
                     {fbCaption}
