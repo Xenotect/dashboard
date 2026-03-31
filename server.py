@@ -6,7 +6,11 @@ import json
 from datetime import datetime
 
 app = Flask(__name__)
-CORS(app) 
+CORS(app)
+
+@app.route('/')
+def index():
+    return jsonify({"status": "ok", "message": "Xeno Server is running"})
 
 # --- 📁 ฟังก์ชันสำหรับบันทึก Log ---
 def save_mission_log(agent_name, command, response):
