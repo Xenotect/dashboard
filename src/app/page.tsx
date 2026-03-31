@@ -292,7 +292,85 @@ function MarketingTab({ api }: { api: string }) {
   );
 }
 
+type UserRole = "admin" | "mod" | "member";
+interface AuthUser { username: string; role: UserRole; token: string; }
+
+function LoginScreen({ onLogin }: { onLogin: (user: AuthUser) => void }) {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      const res = await fetch(`${API}/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
+      const data = await res.json();
+      if (!res.ok) { setError(data.detail || "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง"); return; }
+      localStorage.setItem("xeno_token", data.token);
+      onLogin({ username: data.username, role: data.role, token: data.token });
+    } catch {
+      setError("ไม่สามารถเชื่อมต่อ server ได้");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen flex items-center justify-center" style={{ background: "#08080f" }}>
+      <div className="w-full max-w-sm">
+        <div className="text-center mb-10">
+          <h1 className="text-5xl font-black tracking-tighter text-white">
+            Xeno<span style={{ color: "#7c3aed" }}>.</span>
+          </h1>
+          <p className="text-slate-600 text-xs tracking-widest uppercase mt-2">AI Agent Dashboard</p>
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <input
+              type="text"
+              placeholder="Username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl text-white text-sm font-medium outline-none"
+              style={{ background: "#ffffff08", border: "1px solid #ffffff10" }}
+              autoFocus
+            />
+          </div>
+          <div>
+            <input
+              type="password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full px-4 py-3 rounded-xl text-white text-sm font-medium outline-none"
+              style={{ background: "#ffffff08", border: "1px solid #ffffff10" }}
+            />
+          </div>
+          {error && <p className="text-red-400 text-xs text-center">{error}</p>}
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-3 rounded-xl font-black text-sm uppercase tracking-widest transition-all disabled:opacity-40"
+            style={{ background: "#7c3aed", color: "#fff", boxShadow: "0 4px 20px #7c3aed55" }}
+          >
+            {loading ? "กำลังเข้าสู่ระบบ..." : "เข้าสู่ระบบ"}
+          </button>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 export default function Home() {
+  const [authUser, setAuthUser] = useState<AuthUser | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
   const [activeSystem, setActiveSystem] = useState<SystemType>("gamedev");
   const [command, setCommand] = useState("");
   const [result, setResult] = useState("");
@@ -341,8 +419,26 @@ export default function Home() {
   useEffect(() => {
     setMounted(true);
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    // Check saved token
+    const savedToken = localStorage.getItem("xeno_token");
+    if (savedToken) {
+      fetch(`${API}/me`, { headers: { Authorization: `Bearer ${savedToken}` } })
+        .then((r) => r.json())
+        .then((data) => {
+          if (data.username) setAuthUser({ username: data.username, role: data.role, token: savedToken });
+        })
+        .catch(() => {})
+        .finally(() => setAuthChecked(true));
+    } else {
+      setAuthChecked(true);
+    }
     return () => clearInterval(timer);
   }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("xeno_token");
+    setAuthUser(null);
+  };
 
   // โหลดค่า default จาก localStorage
   useEffect(() => {
@@ -573,6 +669,9 @@ export default function Home() {
   const outputBorderColor = activeSystem === "facebook" ? "#1877F2" : "#7c3aed";
   const outputBgColor = activeSystem === "facebook" ? "#1877F2" : "#7c3aed";
 
+  if (!authChecked) return null;
+  if (!authUser) return <LoginScreen onLogin={(u) => { setAuthUser(u); if (u.role !== "admin") setActiveSystem("facebook"); }} />;
+
   return (
     <main className="min-h-screen bg-[#08080f] text-slate-200" style={{ fontFamily: "'Courier New', monospace" }}>
       {/* HEADER */}
@@ -621,6 +720,19 @@ export default function Home() {
                 {mounted ? currentTime.toLocaleTimeString() : ""}
               </div>
             </div>
+            <div className="flex items-center gap-2 pl-4 border-l border-white/10">
+              <div className="text-right">
+                <div className="text-[9px] font-black text-white uppercase tracking-widest">{authUser?.username}</div>
+                <div className="text-[8px] uppercase tracking-widest" style={{ color: authUser?.role === "admin" ? "#a78bfa" : authUser?.role === "mod" ? "#34d399" : "#60a5fa" }}>{authUser?.role}</div>
+              </div>
+              <button
+                onClick={handleLogout}
+                className="px-3 py-1.5 rounded-lg font-black text-[8px] uppercase tracking-widest transition-all"
+                style={{ background: "#ffffff08", color: "#475569", border: "1px solid #ffffff10" }}
+              >
+                ออก
+              </button>
+            </div>
           </div>
         </div>
       </header>
@@ -639,17 +751,19 @@ export default function Home() {
 
         {/* SYSTEM MENU TABS */}
         <div className="flex gap-2 mb-10 p-1 rounded-2xl bg-white/[0.03] border border-white/5 w-fit">
-          <button
-            onClick={() => handleSystemSwitch("gamedev")}
-            className="flex items-center gap-2 px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all duration-200"
-            style={
-              activeSystem === "gamedev"
-                ? { backgroundColor: "#7c3aed", color: "#fff", boxShadow: "0 4px 16px #7c3aed55" }
-                : { color: "#475569" }
-            }
-          >
-            🎮 Game Dev
-          </button>
+          {authUser?.role === "admin" && (
+            <button
+              onClick={() => handleSystemSwitch("gamedev")}
+              className="flex items-center gap-2 px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all duration-200"
+              style={
+                activeSystem === "gamedev"
+                  ? { backgroundColor: "#7c3aed", color: "#fff", boxShadow: "0 4px 16px #7c3aed55" }
+                  : { color: "#475569" }
+              }
+            >
+              🎮 Game Dev
+            </button>
+          )}
           <button
             onClick={() => handleSystemSwitch("facebook")}
             className="flex items-center gap-2 px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all duration-200"
@@ -661,17 +775,19 @@ export default function Home() {
           >
             📘 Facebook
           </button>
-          <button
-            onClick={() => handleSystemSwitch("marketing")}
-            className="flex items-center gap-2 px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all duration-200"
-            style={
-              activeSystem === "marketing"
-                ? { backgroundColor: "#f59e0b", color: "#fff", boxShadow: "0 4px 16px #f59e0b55" }
-                : { color: "#475569" }
-            }
-          >
-            📊 Marketing
-          </button>
+          {(authUser?.role === "admin" || authUser?.role === "mod") && (
+            <button
+              onClick={() => handleSystemSwitch("marketing")}
+              className="flex items-center gap-2 px-6 py-3 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all duration-200"
+              style={
+                activeSystem === "marketing"
+                  ? { backgroundColor: "#f59e0b", color: "#fff", boxShadow: "0 4px 16px #f59e0b55" }
+                  : { color: "#475569" }
+              }
+            >
+              📊 Marketing
+            </button>
+          )}
         </div>
 
         {/* DEPARTMENTS — Game Dev: always open / Facebook: toggle */}

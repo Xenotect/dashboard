@@ -2,17 +2,72 @@ import os
 import re
 import json
 import requests
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from crewai import Agent, Task, Crew, Process, LLM
-from datetime import datetime
+from datetime import datetime, timedelta
 from openai import OpenAI
 from dotenv import load_dotenv
+from passlib.context import CryptContext
+from jose import JWTError, jwt
 
 load_dotenv()  # โหลด .env file อัตโนมัติ
 
 # Base directory — ทุก file ใช้ path เดียวกันหมด
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# --- 🔐 Auth Setup ---
+SECRET_KEY = os.environ.get("JWT_SECRET", "xeno-secret-key-change-in-production")
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_HOURS = 24
+USERS_FILE = os.path.join(BASE_DIR, "users.json")
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+bearer_scheme = HTTPBearer(auto_error=False)
+
+def load_users():
+    if not os.path.exists(USERS_FILE):
+        return []
+    with open(USERS_FILE, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+def save_users(users):
+    with open(USERS_FILE, "w", encoding="utf-8") as f:
+        json.dump(users, f, indent=2, ensure_ascii=False)
+
+def ensure_passwords_hashed():
+    """Hash plain text passwords on startup if not already hashed."""
+    users = load_users()
+    changed = False
+    for u in users:
+        if not u["password"].startswith("$2b$"):
+            u["password"] = pwd_context.hash(u["password"])
+            changed = True
+    if changed:
+        save_users(users)
+
+ensure_passwords_hashed()
+
+def authenticate_user(username: str, password: str):
+    users = load_users()
+    for u in users:
+        if u["username"] == username and pwd_context.verify(password, u["password"]):
+            return u
+    return None
+
+def create_token(username: str, role: str) -> str:
+    expire = datetime.utcnow() + timedelta(hours=ACCESS_TOKEN_EXPIRE_HOURS)
+    return jwt.encode({"sub": username, "role": role, "exp": expire}, SECRET_KEY, algorithm=ALGORITHM)
+
+def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme)):
+    if not credentials:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    try:
+        payload = jwt.decode(credentials.credentials, SECRET_KEY, algorithms=[ALGORITHM])
+        return {"username": payload["sub"], "role": payload["role"]}
+    except JWTError:
+        raise HTTPException(status_code=401, detail="Invalid token")
 USED_IMAGES_FILE = os.path.join(BASE_DIR, "used_images.json")
 MISSION_LOGS_FILE = os.path.join(BASE_DIR, "mission_logs.json")
 
@@ -983,6 +1038,22 @@ async def marketing_stats():
         "insights": insights,
         "posts": posts_resp.get("data", [])
     }
+
+
+# --- 🔐 Auth Endpoints ---
+@app.post("/login")
+async def login(data: dict):
+    username = data.get("username", "").strip()
+    password = data.get("password", "").strip()
+    user = authenticate_user(username, password)
+    if not user:
+        raise HTTPException(status_code=401, detail="ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง")
+    token = create_token(user["username"], user["role"])
+    return {"token": token, "username": user["username"], "role": user["role"]}
+
+@app.get("/me")
+async def me(current_user: dict = Depends(get_current_user)):
+    return current_user
 
 
 if __name__ == "__main__":
