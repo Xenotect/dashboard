@@ -286,7 +286,7 @@ export default function Home() {
         setFbPostResult({ success: false, message: data.error });
       } else {
         setFbCaption(data.caption || "");
-        setSelectedImageId(data.selected_id);
+        setSelectedImageIds(data.selected_id ? [data.selected_id] : []);
         setFbSmartReason(data.reason || "");
         setFbRemaining(data.remaining ?? null);
         setDriveImages([{ id: data.selected_id, name: "selected", previewUrl: data.preview_url }]);
@@ -304,7 +304,7 @@ export default function Home() {
     setDriveLoading(true);
     setDriveImages([]);
     setDriveFolders([]);
-    setSelectedImageId(null);
+    setSelectedImageIds([]);
     setCurrentFolderName(folderName || "");
     try {
       const res = await fetch(`${API}/fb-drive-images`, {
@@ -1110,7 +1110,7 @@ export default function Home() {
             </button>
             {fbCaption && (
               <button
-                onClick={() => { setFbCaption(""); setFbPrompt(""); setSelectedImageId(null); setFbPostResult(null); setScheduleEnabled(false); setScheduledTime(""); }}
+                onClick={() => { setFbCaption(""); setFbPrompt(""); setSelectedImageIds([]); setFbPostResult(null); setScheduleEnabled(false); setScheduledTime(""); }}
                 className="text-[9px] text-slate-700 hover:text-slate-400 uppercase tracking-widest font-bold transition"
               >
                 Reset
