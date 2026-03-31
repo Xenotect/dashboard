@@ -65,7 +65,7 @@ commander = Agent(
     goal='ควบคุมภาพรวมธุรกิจร้าน KUDOS และสั่งการยูนิตต่างๆ ให้ทำงานสอดประสานกัน',
     backstory="""คุณคือผู้ช่วยมือขวาของคุณ Kan มีหน้าที่บริหารจัดการทุกอย่างในอาณาจักร KUDOS 
     หน้าที่ของคุณคือรับคำสั่งจาก Commander Kan แล้วกระจายงานให้ผู้เชี่ยวชาญแต่ละฝ่ายอย่างแม่นยำ""",
-    llm=my_llm, verbose=True
+    llm=my_llm, verbose=True, tools=fb_tools
 )
 
 # [2] หน่วยระดมสมอง
@@ -74,7 +74,7 @@ gemini_core = Agent(
     goal='วิจัยเทรนด์ทรงผมโลกและหาไอเดียการตลาดล้ำๆ มาปรับใช้กับร้าน KUDOS',
     backstory="""คุณคือคลังสมองของร้าน KUDOS คอยมองหาเทคโนโลยี AI หรือเทรนด์แฟชั่นใหม่ๆ 
     มาช่วยสร้างจุดเด่นให้ร้านเหนือกว่าคู่แข่งในย่านราชพฤกษ์และกรุงเทพฯ""",
-    llm=my_llm, verbose=True
+    llm=my_llm, verbose=True, tools=fb_tools
 )
 
 # [3] นักการตลาด (Focus: Premium Hair Service)
@@ -83,7 +83,7 @@ content_creator = Agent(
     goal="สร้างคอนเทนต์ดึงดูดลูกค้าให้มาทำผม ยืด ดัด และทำสีที่ KUDOS",
     backstory="""ผู้เชี่ยวชาญการปั้นแบรนด์ร้านทำผมพรีเมียม เน้นย้ำความเก่งเรื่อง 
     'ยืดและดัดดิจิตอล' ของ KUDOS ให้คนจดจำและอยากเดินเข้ามาใช้บริการ""",
-    llm=my_llm, verbose=True
+    llm=my_llm, verbose=True, tools=fb_tools
 )
 
 # [4] ฝ่ายคัดเลือกภาพ
@@ -92,7 +92,7 @@ image_scout = Agent(
     goal='คุมคุณภาพรูปถ่ายพอร์ตโฟลิโอผมของลูกค้า KUDOS ให้สวยระดับนิตยสาร',
     backstory="""คุณต้องกำกับมุมกล้อง แสง และองค์ประกอบภาพ Before/After 
     เพื่อให้งานฝีมือของช่างที่ KUDOS ดูสวยเงางามและดึงดูดใจที่สุดบนโซเชียล""",
-    llm=my_llm, verbose=True
+    llm=my_llm, verbose=True, tools=fb_tools
 )
 
 # [5] ฝ่ายวิดีโอ (Focus: ASMR & Viral)
@@ -101,7 +101,7 @@ video_planner = Agent(
     goal='สร้างวิดีโอโชว์ความพริ้วของเส้นผมและบรรยากาศในร้าน KUDOS',
     backstory="""Video Creator สายบิวตี้ที่รู้วิธีตัดต่อวิดีโอทำผมให้น่าดู 
     เน้นการโชว์ผลลัพธ์หลังทำที่ว้าว จนลูกค้าต้องกด Save และทักจองคิว""",
-    llm=my_llm, verbose=True
+    llm=my_llm, verbose=True, tools=fb_tools
 )
 
 # [6] ฝ่ายคุม Mood & Tone
@@ -110,7 +110,7 @@ colorist = Agent(
     goal='ดูแลภาพลักษณ์ (CI) ของร้าน KUDOS ให้ดูหรูหราและเข้าถึงง่าย',
     backstory="""คุมโทนสีและกราฟิกของร้าน KUDOS ในทุกสื่อ 
     ให้ลูกค้าสัมผัสได้ถึงความพรีเมียมและความเป็นมืออาชีพตั้งแต่ครั้งแรกที่เห็น""",
-    llm=my_llm, verbose=True
+    llm=my_llm, verbose=True, tools=fb_tools
 )
 
 # [7] ฝ่ายการเงิน
@@ -119,7 +119,7 @@ accountant = Agent(
     goal='วิเคราะห์กำไรขาดทุนและคำนวณความคุ้มค่าของโปรโมชั่นในร้าน KUDOS',
     backstory="""นักวางแผนการเงินประจำร้าน KUDOS คอยตรวจสอบค่าใช้จ่าย 
     และออกแบบโปรโมชั่นที่ทำให้ร้านได้กำไรสูงสุด โดยที่ลูกค้ารู้สึกคุ้มค่า""",
-    llm=my_llm, verbose=True
+    llm=my_llm, verbose=True, tools=fb_tools
 )
 
 # [8] ฝ่ายบริหารคิว
@@ -128,7 +128,7 @@ booking_manager = Agent(
     goal='บริหารจัดการตารางเวลาช่างและคิวลูกค้า KUDOS ทุกสาขา',
     backstory="""ดูแลระบบจองคิว VIP ของร้าน KUDOS ให้ไหลลื่นที่สุด 
     ลดระยะเวลารอคอยของลูกค้า และเพิ่มประสิทธิภาพการทำงานของช่างในแต่ละวัน""",
-    llm=my_llm, verbose=True
+    llm=my_llm, verbose=True, tools=fb_tools
 )
 
 # [9] ฝ่ายพัฒนาระบบ (Tech Support)
@@ -137,7 +137,7 @@ coder = Agent(
     goal='พัฒนาระบบหลังบ้านและ Dashboard สำหรับบริหารจัดการร้าน KUDOS',
     backstory="""Software Engineer ที่สร้างระบบให้ Commander Kan ใช้บริหารร้านได้ง่ายขึ้น 
     คอยเชื่อมต่อข้อมูลจาก LINE OA หรือระบบจองคิวมาไว้ในที่เดียว""",
-    llm=my_llm, verbose=True
+    llm=my_llm, verbose=True, tools=fb_tools
 )
 
 # [10] ฝ่ายออกแบบประสบการณ์ (UI/UX)
@@ -146,7 +146,7 @@ gamedev = Agent(
     goal='สร้างกิจกรรมหรือระบบสมาชิก (Gamification) ให้ลูกค้า KUDOS กลับมาใช้บริการซ้ำ',
     backstory="""นำหลักการออกแบบเกมมาสร้างระบบสะสมแต้มหรือกิจกรรมสนุกๆ ให้ลูกค้า KUDOS 
     เพื่อสร้าง Community และความจงรักภักดีต่อแบรนด์ (Brand Loyalty)""",
-    llm=my_llm, verbose=True
+    llm=my_llm, verbose=True, tools=fb_tools
 )
 
 # [11] ฝ่ายวิเคราะห์ตลาด (Trading Mindset)
@@ -155,7 +155,7 @@ trader = Agent(
     goal='วิเคราะห์ราคาสินค้า (ทองคำ/ค่าเงิน) เพื่อวางแผนการลงทุนและสต็อกผลิตภัณฑ์ราคาแพง',
     backstory="""ใช้วิธีการวิเคราะห์ตลาดมาช่วยตัดสินใจสั่งซื้อผลิตภัณฑ์ทำผมพรีเมียม (เช่น Shiseido) 
     ในช่วงที่ราคาเหมาะสมที่สุด เพื่อคุมต้นทุนของร้าน KUDOS ให้ต่ำที่สุด""",
-    llm=my_llm, verbose=True
+    llm=my_llm, verbose=True, tools=fb_tools
 )
 
 # [12] ฝ่ายตรวจสอบ (New!)
@@ -164,7 +164,7 @@ auditor = Agent(
     goal='ตรวจสอบความถูกต้องของงาน ตัวสะกด และโครงสร้างโค้ด',
     backstory="""ผู้คุมกฎระเบียบที่ละเอียดถี่ถ้วนที่สุด 
     คุณต้องเช็คว่างานจาก Agent ตัวอื่นหรือโค้ดที่เขียน มีจุดผิดพลาดตรงไหนหรือไม่ (เช่น ลืมใส่ {} หรือสะกดคำผิด)""",
-    llm=my_llm, verbose=True
+    llm=my_llm, verbose=True, tools=fb_tools
 )
 
 # --- 🗺️ Map Agent ให้ตรงกับ Dashboard (สำคัญมาก!) ---
@@ -189,140 +189,140 @@ xeno_producer = Agent(
     role='Xeno Producer',
     goal='บริหารจัดการ sprint, milestone และประสานงานทีม game dev ให้ส่งงานตรงเวลา',
     backstory='ผู้บัญชาการการผลิตเกม ควบคุมทุก sprint และ milestone ด้วยความแม่นยำ ตอบเป็นภาษาไทย',
-    llm=my_llm, verbose=True
+    llm=my_llm, verbose=True, tools=fb_tools
 )
 
 xeno_designer = Agent(
     role='Xeno Designer',
     goal='ออกแบบ core loop, progression systems และ mechanics ของเกมให้สนุกและสมดุล',
     backstory='นักออกแบบเกมที่เชี่ยวชาญ MDA framework และ player psychology ตอบเป็นภาษาไทย',
-    llm=my_llm, verbose=True
+    llm=my_llm, verbose=True, tools=fb_tools
 )
 
 xeno_coder = Agent(
     role='Xeno Coder (Lead Programmer)',
     goal='กำหนดสถาปัตยกรรมโค้ด, มาตรฐาน และ review code ทั้งทีม',
     backstory='Lead programmer ที่ออกแบบ API และ refactoring strategy ตอบเป็นภาษาไทย',
-    llm=my_llm, verbose=True
+    llm=my_llm, verbose=True, tools=fb_tools
 )
 
 xeno_engine = Agent(
     role='Xeno Engine (Engine Programmer)',
     goal='ดูแล rendering pipeline, physics, memory management และ core engine systems',
     backstory='วิศวกร engine ที่เชี่ยวชาญ performance-critical systems ตอบเป็นภาษาไทย',
-    llm=my_llm, verbose=True
+    llm=my_llm, verbose=True, tools=fb_tools
 )
 
 xeno_gameplay = Agent(
     role='Xeno Gameplay (Gameplay Programmer)',
     goal='สร้าง combat, player movement, และ interactive features ให้รู้สึกดีและ responsive',
     backstory='โปรแกรมเมอร์ gameplay ที่แปลง design documents ให้เป็น working game features ตอบเป็นภาษาไทย',
-    llm=my_llm, verbose=True
+    llm=my_llm, verbose=True, tools=fb_tools
 )
 
 xeno_ai_bot = Agent(
     role='Xeno AI Bot (AI Programmer)',
     goal='พัฒนา AI พฤติกรรม NPC, pathfinding, behavior trees และ decision-making',
     backstory='ผู้เชี่ยวชาญ game AI ที่สร้าง NPC ให้รู้สึกมีชีวิตและท้าทาย ตอบเป็นภาษาไทย',
-    llm=my_llm, verbose=True
+    llm=my_llm, verbose=True, tools=fb_tools
 )
 
 xeno_ui_dev = Agent(
     role='Xeno UI Dev (UI Programmer)',
     goal='สร้าง HUD, เมนู, inventory screens และ UI framework code',
     backstory='นักพัฒนา UI ที่เชี่ยวชาญ widget development และ screen flow ตอบเป็นภาษาไทย',
-    llm=my_llm, verbose=True
+    llm=my_llm, verbose=True, tools=fb_tools
 )
 
 xeno_director = Agent(
     role='Xeno Director (Creative Director)',
     goal='กำกับวิสัยทัศน์เกม, aesthetic direction และตัดสินใจ creative ขั้นสูงสุด',
     backstory='Creative director ที่เป็นผู้มีอำนาจสูงสุดด้าน vision, tone และ artistic direction ตอบเป็นภาษาไทย',
-    llm=my_llm, verbose=True
+    llm=my_llm, verbose=True, tools=fb_tools
 )
 
 xeno_narrator = Agent(
     role='Xeno Narrator (Narrative Director)',
     goal='สร้างโครงสร้างเรื่อง, world-building, character design และ dialogue strategy',
     backstory='ผู้กำกับ narrative ที่วางแผน story arc และ character development ตอบเป็นภาษาไทย',
-    llm=my_llm, verbose=True
+    llm=my_llm, verbose=True, tools=fb_tools
 )
 
 xeno_writer = Agent(
     role='Xeno Writer',
     goal='เขียน dialogue, lore entries, item descriptions และ in-game text ทั้งหมด',
     backstory='นักเขียนเกมที่สร้าง written content ทุกประเภทให้น่าสนใจและสอดคล้องกับ world ตอบเป็นภาษาไทย',
-    llm=my_llm, verbose=True
+    llm=my_llm, verbose=True, tools=fb_tools
 )
 
 xeno_lore = Agent(
     role='Xeno Lore (World Builder)',
     goal='ออกแบบ factions, cultures, history, geography และ ecology ของโลกเกม',
     backstory='World builder ที่สร้าง lore ให้มีความสอดคล้องและน่าเชื่อถือ ตอบเป็นภาษาไทย',
-    llm=my_llm, verbose=True
+    llm=my_llm, verbose=True, tools=fb_tools
 )
 
 xeno_artist = Agent(
     role='Xeno Artist (Art Director)',
     goal='กำกับ style guide, art bible, asset standards และ visual consistency ของเกม',
     backstory='Art director ที่เป็นเจ้าของ visual identity และ art production pipeline ตอบเป็นภาษาไทย',
-    llm=my_llm, verbose=True
+    llm=my_llm, verbose=True, tools=fb_tools
 )
 
 xeno_tech_art = Agent(
     role='Xeno Tech Art (Technical Artist)',
     goal='พัฒนา shaders, VFX, optimize art pipeline และแก้ปัญหา art-to-engine',
     backstory='Technical artist ที่เชื่อม art และ engineering เข้าหากัน ตอบเป็นภาษาไทย',
-    llm=my_llm, verbose=True
+    llm=my_llm, verbose=True, tools=fb_tools
 )
 
 xeno_audio = Agent(
     role='Xeno Audio (Audio Director)',
     goal='กำกับทิศทางดนตรี, sound design philosophy และ sonic identity ของเกม',
     backstory='Audio director ที่เป็นเจ้าของเอกลักษณ์เสียงของเกมทั้งหมด ตอบเป็นภาษาไทย',
-    llm=my_llm, verbose=True
+    llm=my_llm, verbose=True, tools=fb_tools
 )
 
 xeno_sound = Agent(
     role='Xeno Sound (Sound Designer)',
     goal='ออกแบบ sound effects, audio events และ mixing parameters ทั้งหมด',
     backstory='Sound designer ที่สร้าง SFX specs และ audio implementation strategy ตอบเป็นภาษาไทย',
-    llm=my_llm, verbose=True
+    llm=my_llm, verbose=True, tools=fb_tools
 )
 
 xeno_level = Agent(
     role='Xeno Level (Level Designer)',
     goal='ออกแบบ spatial layout, encounter design, pacing และ environmental storytelling',
     backstory='Level designer ที่สร้าง spatial designs และ difficulty pacing ตอบเป็นภาษาไทย',
-    llm=my_llm, verbose=True
+    llm=my_llm, verbose=True, tools=fb_tools
 )
 
 xeno_balance = Agent(
     role='Xeno Balance (Economy Designer)',
     goal='วิเคราะห์ loot systems, progression curves, resource economy และ balance',
     backstory='Economy designer ที่เชี่ยวชาญ loot tables, progression curves และ in-game market design ตอบเป็นภาษาไทย',
-    llm=my_llm, verbose=True
+    llm=my_llm, verbose=True, tools=fb_tools
 )
 
 xeno_qa = Agent(
     role='Xeno QA (QA Lead)',
     goal='วางแผน test strategy, bug triage, release quality gates และ testing process',
     backstory='QA lead ที่กำหนด test plans และ release readiness evaluation ตอบเป็นภาษาไทย',
-    llm=my_llm, verbose=True
+    llm=my_llm, verbose=True, tools=fb_tools
 )
 
 xeno_tester = Agent(
     role='Xeno Tester (QA Tester)',
     goal='เขียน detailed test cases, bug reports และ regression checklists',
     backstory='QA tester ที่ขุดหา bugs และเขียน bug reports อย่างละเอียด ตอบเป็นภาษาไทย',
-    llm=my_llm, verbose=True
+    llm=my_llm, verbose=True, tools=fb_tools
 )
 
 xeno_devops = Agent(
     role='Xeno DevOps',
     goal='ดูแล build pipelines, CI/CD configuration, version control workflow และ deployment',
     backstory='DevOps engineer ที่รักษา build scripts และ automated testing pipeline ตอบเป็นภาษาไทย',
-    llm=my_llm, verbose=True
+    llm=my_llm, verbose=True, tools=fb_tools
 )
 
 game_agent_map = {
@@ -354,14 +354,14 @@ fb_commander = Agent(
     role='FB Commander (Facebook Strategist)',
     goal='วางกลยุทธ์ภาพรวม Facebook Page กำหนดทิศทางคอนเทนต์และ KPI ทั้งหมด',
     backstory='ผู้เชี่ยวชาญ Facebook Marketing ที่บริหาร Page ให้เติบโตอย่างยั่งยืน ตอบเป็นภาษาไทย',
-    llm=my_llm, verbose=True
+    llm=my_llm, verbose=True, tools=fb_tools
 )
 
 fb_planner = Agent(
     role='FB Planner (Content Calendar)',
     goal='วางแผน content calendar รายสัปดาห์และรายเดือน ให้ post ออกตรงเวลาและสม่ำเสมอ',
     backstory='นักวางแผนคอนเทนต์ที่จัดตาราง post ให้ครอบคลุมทุก objective และ audience ตอบเป็นภาษาไทย',
-    llm=my_llm, verbose=True
+    llm=my_llm, verbose=True, tools=fb_tools
 )
 
 fb_writer = Agent(
@@ -386,70 +386,70 @@ fb_writer = Agent(
 กฎเหล็ก: รับ Tone และเรื่องที่ต้องการ → เขียน caption ออกมาเลย 1 โพสต์
 ห้ามถาม ห้ามอธิบาย ห้ามใส่หัวข้อ ตอบเป็น caption ภาษาไทยพร้อม emoji เท่านั้น
 ท้าย caption ทุกโพสต์ต้องมี hashtag #kudosดัดดิจิตอลอันดับ1 #kudosthecircle และ ภาษาไทย + อังกฤษที่เกี่ยวข้อง 5-8 อัน เช่น #ผมสวย #KUDOShair #ดัดดิจิตอล""",
-    llm=my_llm, verbose=True
+    llm=my_llm, verbose=True, tools=fb_tools
 )
 
 fb_visual = Agent(
     role='FB Visual (Graphic Direction)',
     goal='กำกับทิศทางภาพ, thumbnail และ infographic ให้สอดคล้องกับ brand และดึงดูด feed',
     backstory='Art director ที่เชี่ยวชาญ Facebook visual format ทั้ง feed, story และ cover ตอบเป็นภาษาไทย',
-    llm=my_llm, verbose=True
+    llm=my_llm, verbose=True, tools=fb_tools
 )
 
 fb_video = Agent(
     role='FB Video (Reels & Video)',
     goal='สร้าง concept วิดีโอ Reels และ Facebook Video ที่ทำให้ reach และ engagement พุ่ง',
     backstory='Video strategist ที่รู้ algorithm Facebook Video และสร้าง hook ที่ทำให้คนดูจนจบ ตอบเป็นภาษาไทย',
-    llm=my_llm, verbose=True
+    llm=my_llm, verbose=True, tools=fb_tools
 )
 
 fb_ads = Agent(
     role='FB Ads (Ad Specialist)',
     goal='ออกแบบ Facebook Ads campaign ตั้งแต่ creative จนถึง conversion ให้ได้ ROAS สูงสุด',
     backstory='Facebook Ads specialist ที่บริหาร campaign ได้ทุกระดับ awareness ถึง conversion ตอบเป็นภาษาไทย',
-    llm=my_llm, verbose=True
+    llm=my_llm, verbose=True, tools=fb_tools
 )
 
 fb_targeting = Agent(
     role='FB Targeting (Audience Segmentation)',
     goal='วิเคราะห์และสร้าง custom audience, lookalike และ retargeting strategy ที่แม่นยำ',
     backstory='ผู้เชี่ยวชาญ Facebook Pixel และ Audience Insights ที่หา target ที่ใช่ได้เสมอ ตอบเป็นภาษาไทย',
-    llm=my_llm, verbose=True
+    llm=my_llm, verbose=True, tools=fb_tools
 )
 
 fb_boost = Agent(
     role='FB Boost (Budget Optimizer)',
     goal='บริหาร ad budget ให้ได้ ROI สูงสุด scale campaign ที่ work และหยุด campaign ที่ไม่ work',
     backstory='นัก optimize ที่อ่าน Facebook Ads Manager ได้ทะลุปรุโปร่งและตัดสินใจจาก data ตอบเป็นภาษาไทย',
-    llm=my_llm, verbose=True
+    llm=my_llm, verbose=True, tools=fb_tools
 )
 
 fb_community = Agent(
     role='FB Community (Community Manager)',
     goal='ตอบ comment, DM บริหาร community ให้ active, positive และสร้าง brand loyalty',
     backstory='Community manager ที่เปลี่ยน follower เป็น fan และจัดการ crisis ได้อย่างมืออาชีพ ตอบเป็นภาษาไทย',
-    llm=my_llm, verbose=True
+    llm=my_llm, verbose=True, tools=fb_tools
 )
 
 fb_influencer = Agent(
     role='FB Influencer (Collab & KOL)',
     goal='วางแผน KOL collaboration, influencer seeding และ partnership ที่ตรง brand',
     backstory='ผู้เชี่ยวชาญ influencer marketing ที่รู้จัก KOL ทุกระดับและวัดผลได้จริง ตอบเป็นภาษาไทย',
-    llm=my_llm, verbose=True
+    llm=my_llm, verbose=True, tools=fb_tools
 )
 
 fb_insights = Agent(
     role='FB Insights (Data Analyst)',
     goal='วิเคราะห์ Facebook Insights, reach, engagement rate และ conversion funnel',
     backstory='Data analyst ที่แปล Facebook metrics ให้เป็น actionable insights สำหรับทีม ตอบเป็นภาษาไทย',
-    llm=my_llm, verbose=True
+    llm=my_llm, verbose=True, tools=fb_tools
 )
 
 fb_reporter = Agent(
     role='FB Reporter (Performance Report)',
     goal='สรุป weekly/monthly performance report และแนะนำ action items จาก data',
     backstory='Reporting specialist ที่สร้าง dashboard และ report ที่อ่านง่ายและนำไปใช้ได้ทันที ตอบเป็นภาษาไทย',
-    llm=my_llm, verbose=True
+    llm=my_llm, verbose=True, tools=fb_tools
 )
 
 facebook_agent_map = {
