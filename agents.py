@@ -2,7 +2,7 @@ import os
 import re
 import json
 import requests
-from fastapi import FastAPI, HTTPException, Depends
+from fastapi import FastAPI, HTTPException, Depends, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from crewai import Agent, Task, Crew, Process, LLM
@@ -96,13 +96,31 @@ def save_mission_log(agent_name, command, response):
 
 app = FastAPI()
 
+_ALLOWED_ORIGINS = os.environ.get(
+    "ALLOWED_ORIGINS",
+    "http://localhost:3000,http://localhost:3001"
+).split(",")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_ALLOWED_ORIGINS,
     allow_methods=["*"],
     allow_headers=["*"],
     allow_credentials=False,
 )
+
+# --- 🛡️ Rate limiter สำหรับ /login (5 ครั้ง/นาที ต่อ IP) ---
+from collections import defaultdict
+import time as _time
+_login_attempts: dict = defaultdict(list)
+
+def check_rate_limit(ip: str):
+    now = _time.time()
+    attempts = [t for t in _login_attempts[ip] if now - t < 60]
+    _login_attempts[ip] = attempts
+    if len(attempts) >= 5:
+        raise HTTPException(status_code=429, detail="พยายาม login มากเกินไป รอ 1 นาที")
+    _login_attempts[ip].append(now)
 
 my_llm = LLM(
     model='anthropic/claude-sonnet-4-6',
@@ -586,14 +604,14 @@ facebook_agent_map = {
 
 # --- 🔍 Route (เหมือนเดิม) ---
 @app.get("/get-logs")
-async def get_logs():
+async def get_logs(_user: dict = Depends(get_current_user)):
     if os.path.exists('mission_logs.json'):
         with open('mission_logs.json', 'r', encoding='utf-8') as f:
             return json.load(f)
     return []
 
 @app.post("/ask-agent")
-async def ask_agent(data: dict):
+async def ask_agent(data: dict, _user: dict = Depends(get_current_user)):
     user_command = data.get("command")
     selected_agent_name = data.get("agent")
 
@@ -617,7 +635,7 @@ async def ask_agent(data: dict):
     return {"result": str(result)}
 
 @app.post("/ask-facebook")
-async def ask_facebook(data: dict):
+async def ask_facebook(data: dict, _user: dict = Depends(get_current_user)):
     user_command = data.get("command")
     selected_agent_name = data.get("agent")
 
@@ -641,7 +659,7 @@ async def ask_facebook(data: dict):
     return {"result": str(result)}
 
 @app.post("/ask-xeno")
-async def ask_xeno(data: dict):
+async def ask_xeno(data: dict, _user: dict = Depends(get_current_user)):
     user_command = data.get("command")
     selected_agent_name = data.get("agent")
     
@@ -668,7 +686,7 @@ async def ask_xeno(data: dict):
 openai_client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
 @app.post("/generate-image")
-async def generate_image(data: dict):
+async def generate_image(data: dict, _user: dict = Depends(get_current_user)):
     prompt = data.get("prompt", "")
     if not prompt:
         return {"error": "กรุณาใส่ prompt"}
@@ -688,7 +706,7 @@ async def generate_image(data: dict):
 game_process = None
 
 @app.post("/run-game")
-async def run_game():
+async def run_game(_user: dict = Depends(get_current_user)):
     global game_process
     import subprocess
 
@@ -706,7 +724,7 @@ async def run_game():
 
 # --- 📘 Facebook: AI เลือกรูป + เขียน Caption อัตโนมัติ ---
 @app.post("/fb-smart-post")
-async def fb_smart_post(data: dict):
+async def fb_smart_post(data: dict, _user: dict = Depends(get_current_user)):
     import anthropic as anthropic_sdk
 
     folder_link = data.get("folder_link", "").strip()
@@ -827,7 +845,7 @@ async def fb_smart_post(data: dict):
 
 # --- 📘 Facebook: ดูประวัติรูปที่เคยใช้แล้ว ---
 @app.get("/fb-used-images")
-async def fb_used_images():
+async def fb_used_images(_user: dict = Depends(get_current_user)):
     used_file = USED_IMAGES_FILE
     if not os.path.exists(used_file):
         return []
@@ -843,7 +861,7 @@ async def fb_used_images():
 
 # --- 📘 Facebook: ลบรูปออกจากประวัติ ---
 @app.post("/fb-delete-used-image")
-async def fb_delete_used_image(data: dict):
+async def fb_delete_used_image(data: dict, _user: dict = Depends(get_current_user)):
     image_id = data.get("id", "")
     used_file = USED_IMAGES_FILE
     if not os.path.exists(used_file):
@@ -863,7 +881,7 @@ async def fb_delete_used_image(data: dict):
 
 # --- 📘 Facebook: ดึงรูปจาก Google Drive Folder ---
 @app.post("/fb-drive-images")
-async def fb_drive_images(data: dict):
+async def fb_drive_images(data: dict, _user: dict = Depends(get_current_user)):
     folder_link = data.get("folder_link", "").strip()
 
     match = re.search(r'/folders/([a-zA-Z0-9_-]+)', folder_link)
@@ -909,7 +927,7 @@ async def fb_drive_images(data: dict):
 
 # --- 📘 Facebook: โพสต์ขึ้น Page ---
 @app.post("/fb-post")
-async def fb_post(data: dict):
+async def fb_post(data: dict, _user: dict = Depends(get_current_user)):
     from datetime import timezone
     caption = data.get("caption", "").strip()
     footer = data.get("footer", "").strip()
@@ -993,7 +1011,7 @@ async def fb_post(data: dict):
 
 
 @app.get("/marketing-stats")
-async def marketing_stats():
+async def marketing_stats(_user: dict = Depends(get_current_user)):
     page_id = os.environ.get("FB_PAGE_ID")
     token = os.environ.get("FB_PAGE_ACCESS_TOKEN")
     if not page_id or not token:
@@ -1041,7 +1059,8 @@ async def marketing_stats():
 
 # --- 🔐 Auth Endpoints ---
 @app.post("/login")
-async def login(data: dict):
+async def login(data: dict, request: Request):
+    check_rate_limit(request.client.host if request.client else "unknown")
     username = data.get("username", "").strip()
     password = data.get("password", "").strip()
     user = authenticate_user(username, password)

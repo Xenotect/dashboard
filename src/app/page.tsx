@@ -124,7 +124,7 @@ type Agent = { name: string; role: string; emoji: string; bio: string };
 type Department = { name: string; color: string; darkColor: string; agents: Agent[] };
 type SystemType = "gamedev" | "facebook" | "marketing";
 
-function MarketingTab({ api }: { api: string }) {
+function MarketingTab({ api, token }: { api: string; token: string }) {
   const [stats, setStats] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -133,7 +133,7 @@ function MarketingTab({ api }: { api: string }) {
     setLoading(true);
     setError("");
     try {
-      const res = await fetch(`${api}/marketing-stats`);
+      const res = await fetch(`${api}/marketing-stats`, { headers: { Authorization: `Bearer ${token}` } });
       const data = await res.json();
       if (data.error) { setError(data.error); } else { setStats(data); }
     } catch { setError("เชื่อมต่อ server ไม่ได้"); }
@@ -464,6 +464,14 @@ export default function Home() {
     setGeneratedImage("");
   };
 
+  const authFetch = (url: string, options: RequestInit = {}) => {
+    const token = authUser?.token || localStorage.getItem("xeno_token") || "";
+    return fetch(url, {
+      ...options,
+      headers: { ...(options.headers as Record<string, string> || {}), "Authorization": `Bearer ${token}` },
+    });
+  };
+
   const handleAgentClick = (agent: Agent) => {
     setSelectedAgent(agent);
     setResult("");
@@ -477,7 +485,7 @@ export default function Home() {
     const endpoint =
       activeSystem === "gamedev" ? "/ask-agent" : "/ask-facebook";
     try {
-      const res = await fetch(`${API}${endpoint}`, {
+      const res = await authFetch(`${API}${endpoint}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ command, agent: selectedAgent.name }),
@@ -498,7 +506,7 @@ export default function Home() {
     setImageLoading(true);
     setGeneratedImage("");
     try {
-      const res = await fetch(`${API}/generate-image`, {
+      const res = await authFetch(`${API}/generate-image`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt: imagePrompt }),
@@ -518,7 +526,7 @@ export default function Home() {
     setFbCaptionLoading(true);
     setFbCaption("");
     try {
-      const res = await fetch(`${API}/ask-facebook`, {
+      const res = await authFetch(`${API}/ask-facebook`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -542,7 +550,7 @@ export default function Home() {
     setFbSmartReason("");
     setFbPostResult(null);
     try {
-      const res = await fetch(`${API}/fb-smart-post`, {
+      const res = await authFetch(`${API}/fb-smart-post`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ folder_link: activeFolderUrl, prompt: fbPrompt }),
@@ -573,7 +581,7 @@ export default function Home() {
     setSelectedImageIds([]);
     setCurrentFolderName(folderName || "");
     try {
-      const res = await fetch(`${API}/fb-drive-images`, {
+      const res = await authFetch(`${API}/fb-drive-images`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ folder_link: link }),
@@ -594,7 +602,7 @@ export default function Home() {
   // FB: โหลดประวัติรูปที่ใช้แล้ว
   const handleLoadUsedImages = async () => {
     try {
-      const res = await fetch(`${API}/fb-used-images`);
+      const res = await authFetch(`${API}/fb-used-images`);
       const data = await res.json();
       setUsedImages(data);
       setShowUsedImages(true);
@@ -605,7 +613,7 @@ export default function Home() {
 
   // FB: ลบรูปออกจากประวัติ
   const handleDeleteUsedImage = async (imageId: string) => {
-    const res = await fetch(`${API}/fb-delete-used-image`, {
+    const res = await authFetch(`${API}/fb-delete-used-image`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: imageId }),
@@ -630,7 +638,7 @@ export default function Home() {
       if (scheduleEnabled && scheduledTime) {
         body.scheduled_time = scheduledTime;
       }
-      const res = await fetch(`${API}/fb-post`, {
+      const res = await authFetch(`${API}/fb-post`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
@@ -646,7 +654,7 @@ export default function Home() {
   const handleRunGame = async () => {
     setRunGameLoading(true);
     try {
-      const res = await fetch(`${API}/run-game`, { method: "POST" });
+      const res = await authFetch(`${API}/run-game`, { method: "POST" });
       const data = await res.json();
       setGameRunning(data.running ?? true);
       setResult(`🎮 ${data.message || (data.running ? "Game is now running" : "Game stopped")}`);
@@ -1494,7 +1502,7 @@ export default function Home() {
 
       {/* MARKETING SETUP */}
       {activeSystem === "marketing" && (
-        <MarketingTab api={API} />
+        <MarketingTab api={API} token={authUser?.token || ""} />
       )}
 
       <footer className="py-10 text-center text-[8px] uppercase tracking-[1em] text-slate-800">
