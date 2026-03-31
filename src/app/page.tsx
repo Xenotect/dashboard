@@ -225,7 +225,7 @@ function MarketingTab({ api }: { api: string }) {
             const parts = rawId.split("_");
             const fallbackUrl = parts.length === 2 ? `https://www.facebook.com/permalink.php?story_fbid=${parts[1]}&id=${parts[0]}` : "";
             const url = String(post.permalink_url || fallbackUrl);
-            return { ...post, _likes: Number(likes?.total_count ?? 0), _comments: Number(comments?.total_count ?? 0), _shares: Number(shares?.count ?? 0), _score: score, _impressions: impressions, _url: url };
+            return { ...post, _likes: Number(likes?.total_count ?? 0), _comments: Number(comments?.total_count ?? 0), _shares: Number(shares?.count ?? 0), _score: score, _impressions: impressions, _url: url, _date: String(post.created_time ?? "") };
           }).sort((a, b) => b._score - a._score);
 
           const medals = ["🥇", "🥈", "🥉"];
@@ -233,7 +233,7 @@ function MarketingTab({ api }: { api: string }) {
           return (
             <div className="space-y-2">
               {ranked.map((post, i) => {
-                const date = post.created_time ? new Date(String(post.created_time)).toLocaleDateString("th-TH", { day: "numeric", month: "short" }) : "";
+                const date = post._date ? new Date(post._date).toLocaleDateString("th-TH", { day: "numeric", month: "short" }) : "";
                 return (
                   <a
                     key={i}
