@@ -55,6 +55,69 @@ my_llm = LLM(
     temperature=0.7
 )
 
+# --- 📊 Facebook Tools สำหรับดึงข้อมูล Real-time ---
+from crewai.tools import tool
+
+FB_PAGE_ID = os.environ.get("FACEBOOK_PAGE_ID", "")
+FB_ACCESS_TOKEN = os.environ.get("FACEBOOK_ACCESS_TOKEN", "")
+
+@tool("get_page_stats")
+def get_page_stats(dummy: str = "") -> str:
+    """ดึงสถิติ Page เช่น followers, fan count, impressions จาก Facebook Graph API"""
+    if not FB_PAGE_ID or not FB_ACCESS_TOKEN:
+        return "ไม่มี Facebook credentials ในระบบ"
+    try:
+        fields = "followers_count,fan_count,name"
+        url = f"https://graph.facebook.com/v19.0/{FB_PAGE_ID}?fields={fields}&access_token={FB_ACCESS_TOKEN}"
+        r = requests.get(url, timeout=10)
+        data = r.json()
+        if "error" in data:
+            return f"Facebook API error: {data['error'].get('message', 'unknown')}"
+        return json.dumps(data, ensure_ascii=False)
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+@tool("get_recent_posts")
+def get_recent_posts(dummy: str = "") -> str:
+    """ดึง 10 โพสต์ล่าสุดจาก Facebook Page พร้อม engagement"""
+    if not FB_PAGE_ID or not FB_ACCESS_TOKEN:
+        return "ไม่มี Facebook credentials ในระบบ"
+    try:
+        fields = "id,message,created_time,permalink_url,likes.summary(true),comments.summary(true)"
+        url = f"https://graph.facebook.com/v19.0/{FB_PAGE_ID}/posts?fields={fields}&limit=10&access_token={FB_ACCESS_TOKEN}"
+        r = requests.get(url, timeout=10)
+        data = r.json()
+        if "error" in data:
+            return f"Facebook API error: {data['error'].get('message', 'unknown')}"
+        return json.dumps(data.get("data", []), ensure_ascii=False)
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+@tool("get_top_posts")
+def get_top_posts(dummy: str = "") -> str:
+    """ดึงโพสต์ยอดนิยมสูงสุด 5 อันดับจาก Facebook Page"""
+    if not FB_PAGE_ID or not FB_ACCESS_TOKEN:
+        return "ไม่มี Facebook credentials ในระบบ"
+    try:
+        fields = "id,message,created_time,permalink_url,likes.summary(true),comments.summary(true),shares"
+        url = f"https://graph.facebook.com/v19.0/{FB_PAGE_ID}/posts?fields={fields}&limit=25&access_token={FB_ACCESS_TOKEN}"
+        r = requests.get(url, timeout=10)
+        data = r.json()
+        if "error" in data:
+            return f"Facebook API error: {data['error'].get('message', 'unknown')}"
+        posts = data.get("data", [])
+        def score(p):
+            likes = p.get("likes", {}).get("summary", {}).get("total_count", 0)
+            comments = p.get("comments", {}).get("summary", {}).get("total_count", 0)
+            shares = p.get("shares", {}).get("count", 0)
+            return likes + comments * 2 + shares * 3
+        top = sorted(posts, key=score, reverse=True)[:5]
+        return json.dumps(top, ensure_ascii=False)
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+fb_tools = [get_page_stats, get_recent_posts, get_top_posts]
+
 # --- 🎭 สร้างทีม Xeno AI ทั้ง 6 ตำแหน่ง (Full Team) ---
 
 # --- 🎭 สั่งการยูนิต Xeno AI ทั้ง 12 ตำแหน่ง (KUDOS Focus Only) ---
