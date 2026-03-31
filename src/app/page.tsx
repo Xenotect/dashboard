@@ -122,7 +122,7 @@ const facebookDepartments = [
 
 type Agent = { name: string; role: string; emoji: string; bio: string };
 type Department = { name: string; color: string; darkColor: string; agents: Agent[] };
-type SystemType = "gamedev" | "facebook";
+type SystemType = "gamedev" | "facebook" | "marketing";
 
 export default function Home() {
   const [activeSystem, setActiveSystem] = useState<SystemType>("gamedev");
@@ -397,6 +397,7 @@ export default function Home() {
   const theme = {
     gamedev: { accent: "#7c3aed", accentLight: "#a78bfa", label: "GAME DEV", icon: "🎮" },
     facebook: { accent: "#1877F2", accentLight: "#00B2FF", label: "FACEBOOK", icon: "📘" },
+    marketing: { accent: "#f59e0b", accentLight: "#fcd34d", label: "MARKETING", icon: "📊" },
   }[activeSystem];
 
   const outputBorderColor = activeSystem === "facebook" ? "#1877F2" : "#7c3aed";
