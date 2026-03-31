@@ -58,8 +58,8 @@ my_llm = LLM(
 # --- 📊 Facebook Tools สำหรับดึงข้อมูล Real-time ---
 from crewai.tools import tool
 
-FB_PAGE_ID = os.environ.get("FACEBOOK_PAGE_ID", "")
-FB_ACCESS_TOKEN = os.environ.get("FACEBOOK_ACCESS_TOKEN", "")
+FB_PAGE_ID = os.environ.get("FB_PAGE_ID", "")
+FB_ACCESS_TOKEN = os.environ.get("FB_PAGE_ACCESS_TOKEN", "")
 
 @tool("get_page_stats")
 def get_page_stats(dummy: str = "") -> str:
