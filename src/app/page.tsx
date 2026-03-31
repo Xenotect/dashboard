@@ -611,11 +611,11 @@ export default function Home() {
                 {runGameLoading ? "Loading..." : gameRunning ? "Stop Game" : "Run Game"}
               </button>
             )}
-            <div className="text-right">
-              <div className="text-[9px] text-slate-600 uppercase tracking-widest">
+            <div className="text-right" suppressHydrationWarning>
+              <div className="text-[9px] text-slate-600 uppercase tracking-widest" suppressHydrationWarning>
                 {currentTime.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }).toUpperCase()}
               </div>
-              <div className="text-xs font-black" style={{ color: theme.accentLight }}>
+              <div className="text-xs font-black" style={{ color: theme.accentLight }} suppressHydrationWarning>
                 {currentTime.toLocaleTimeString()}
               </div>
             </div>
