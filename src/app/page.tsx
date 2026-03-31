@@ -145,10 +145,10 @@ export default function Home() {
   const [footerSaved, setFooterSaved] = useState(false);
   const [showFolderConfig, setShowFolderConfig] = useState(false);
   const [folderCategories, setFolderCategories] = useState([
-    { name: "ทำสีผม", emoji: "🎨", url: "" },
-    { name: "ดัดผม", emoji: "💫", url: "" },
-    { name: "ยืดผม", emoji: "✨", url: "" },
-    { name: "ทรงผม", emoji: "✂️", url: "" },
+    { name: "ทำสีผม", emoji: "🎨", url: process.env.NEXT_PUBLIC_FOLDER_TAMSIPOM || "" },
+    { name: "ตัดผม", emoji: "💫", url: process.env.NEXT_PUBLIC_FOLDER_TATPOM || "" },
+    { name: "ยืดผม", emoji: "✨", url: process.env.NEXT_PUBLIC_FOLDER_YEUTPOM || "" },
+    { name: "ทรงผม", emoji: "✂️", url: process.env.NEXT_PUBLIC_FOLDER_SONGPOM || "" },
   ]);
   const [activeFolderIdx, setActiveFolderIdx] = useState<number | null>(null);
   const [driveImages, setDriveImages] = useState<{ id: string; name: string; previewUrl: string }[]>([]);
@@ -902,13 +902,6 @@ export default function Home() {
                   <label className="text-[9px] font-black uppercase tracking-widest" style={{ color: "#42B72A" }}>
                     Step 4 — รูปจาก Google Drive
                   </label>
-                  <button
-                    onClick={() => setShowFolderConfig(!showFolderConfig)}
-                    className="text-[8px] font-black uppercase tracking-widest px-3 py-1 rounded-lg transition-all"
-                    style={{ backgroundColor: showFolderConfig ? "#42B72A20" : "rgba(255,255,255,0.03)", color: showFolderConfig ? "#42B72A" : "#475569", border: "1px solid rgba(255,255,255,0.06)" }}
-                  >
-                    ⚙️ ตั้งค่า URL
-                  </button>
                 </div>
 
                 {/* URL Config Panel */}
