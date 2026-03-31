@@ -299,6 +299,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
   const [currentTime, setCurrentTime] = useState(new Date());
+  const [mounted, setMounted] = useState(false);
   const [gameRunning, setGameRunning] = useState(false);
   const [runGameLoading, setRunGameLoading] = useState(false);
   const [imagePrompt, setImagePrompt] = useState("");
@@ -338,6 +339,7 @@ export default function Home() {
   const [currentFolderName, setCurrentFolderName] = useState("");
 
   useEffect(() => {
+    setMounted(true);
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
     return () => clearInterval(timer);
   }, []);
@@ -611,12 +613,12 @@ export default function Home() {
                 {runGameLoading ? "Loading..." : gameRunning ? "Stop Game" : "Run Game"}
               </button>
             )}
-            <div className="text-right" suppressHydrationWarning>
-              <div className="text-[9px] text-slate-600 uppercase tracking-widest" suppressHydrationWarning>
-                {currentTime.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }).toUpperCase()}
+            <div className="text-right">
+              <div className="text-[9px] text-slate-600 uppercase tracking-widest">
+                {mounted ? currentTime.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" }).toUpperCase() : ""}
               </div>
-              <div className="text-xs font-black" style={{ color: theme.accentLight }} suppressHydrationWarning>
-                {currentTime.toLocaleTimeString()}
+              <div className="text-xs font-black" style={{ color: theme.accentLight }}>
+                {mounted ? currentTime.toLocaleTimeString() : ""}
               </div>
             </div>
           </div>
