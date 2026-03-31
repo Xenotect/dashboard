@@ -884,6 +884,20 @@ export default function Home() {
                     {footerSaved ? "✓ Saved!" : "💾 Save Default"}
                   </button>
                 </div>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {[
+                    { label: "📌 Kudos ดัดดิจิตอล", text: `📌 Kudos ดัดดิจิตอล "เพราะผมสวยเป็นเรื่องของมืออาชีพ"\n🔹️ สาขา ราชพฤกษ์      : 064-984-5587\n🔹️ สาขา คริสตัลปาร์ค  : 082-918-6859\n🔹️ สาขา นวมินทร์        : 097-1576-242\n📌 ติดต่อผ่าน LINE : @kudosbytarakorn` },
+                  ].map((preset) => (
+                    <button
+                      key={preset.label}
+                      onClick={() => setFbFooter(preset.text)}
+                      className="text-[8px] font-black uppercase tracking-widest px-3 py-1 rounded-lg transition-all"
+                      style={{ backgroundColor: "#00B2FF15", color: "#00B2FF", border: "1px solid #00B2FF30" }}
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
                 <textarea
                   className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-slate-700 focus:outline-none resize-none min-h-[90px] leading-relaxed"
                   placeholder="เบอร์โทร, Line, ที่อยู่..."
