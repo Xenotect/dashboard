@@ -124,6 +124,114 @@ type Agent = { name: string; role: string; emoji: string; bio: string };
 type Department = { name: string; color: string; darkColor: string; agents: Agent[] };
 type SystemType = "gamedev" | "facebook" | "marketing";
 
+function MarketingTab({ api }: { api: string }) {
+  const [stats, setStats] = useState<Record<string, unknown> | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const fetchStats = async () => {
+    setLoading(true);
+    setError("");
+    try {
+      const res = await fetch(`${api}/marketing-stats`);
+      const data = await res.json();
+      if (data.error) { setError(data.error); } else { setStats(data); }
+    } catch { setError("เชื่อมต่อ server ไม่ได้"); }
+    setLoading(false);
+  };
+
+  const page = stats?.page as Record<string, unknown> | undefined;
+  const insights = stats?.insights as Record<string, number> | undefined;
+  const posts = stats?.posts as Record<string, unknown>[] | undefined;
+
+  const overviewCards = [
+    { label: "Followers", value: page?.followers_count ?? "—" },
+    { label: "Fan Count", value: page?.fan_count ?? "—" },
+    { label: "Impressions (7วัน)", value: insights?.page_impressions ?? "—" },
+    { label: "Engaged Users (7วัน)", value: insights?.page_engaged_users ?? "—" },
+  ];
+
+  return (
+    <div className="mt-6 space-y-6">
+
+      {/* Header + Refresh */}
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-white font-black text-lg">{page ? String(page.name) : "KUDOS"}</p>
+          <p className="text-[9px] text-slate-600 uppercase tracking-widest">Facebook Page Analytics</p>
+        </div>
+        <button
+          onClick={fetchStats}
+          disabled={loading}
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl font-black text-[9px] uppercase tracking-widest transition-all"
+          style={{ backgroundColor: "#f59e0b", color: "#000" }}
+        >
+          {loading ? "⏳ กำลังโหลด..." : "🔄 เรียกข้อมูล Real-time"}
+        </button>
+      </div>
+
+      {error && <p className="text-red-400 text-[10px]">{error}</p>}
+
+      {/* Page Overview */}
+      <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
+        <p className="text-[9px] font-black uppercase tracking-widest mb-4" style={{ color: "#f59e0b" }}>📊 Page Overview</p>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {overviewCards.map((card) => (
+            <div key={card.label} className="rounded-xl bg-white/[0.03] border border-white/5 p-4 text-center">
+              <p className="text-[8px] uppercase tracking-widest text-slate-600 mb-2">{card.label}</p>
+              <p className="text-2xl font-black text-white">{String(card.value)}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Post Performance */}
+      <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
+        <p className="text-[9px] font-black uppercase tracking-widest mb-4" style={{ color: "#f59e0b" }}>📝 Post Performance (10 ล่าสุด)</p>
+        {!posts && <p className="text-slate-700 text-[10px] text-center py-4">กด "เรียกข้อมูล" เพื่อโหลด</p>}
+        {posts && posts.length === 0 && <p className="text-slate-700 text-[10px] text-center py-4">ไม่พบโพสต์</p>}
+        {posts && posts.length > 0 && (
+          <div className="space-y-2">
+            {posts.map((post, i) => {
+              const likes = (post.likes as Record<string, unknown>)?.summary as Record<string, unknown>;
+              const comments = (post.comments as Record<string, unknown>)?.summary as Record<string, unknown>;
+              const shares = post.shares as Record<string, unknown>;
+              return (
+                <div key={i} className="flex items-start gap-3 rounded-xl bg-white/[0.03] border border-white/5 p-3">
+                  <span className="text-slate-600 text-[9px] w-4 shrink-0">{i + 1}</span>
+                  <p className="flex-1 text-[10px] text-slate-400 line-clamp-2">{String(post.message || "—").slice(0, 80)}</p>
+                  <div className="flex gap-3 shrink-0 text-[9px]">
+                    <span style={{ color: "#1877F2" }}>👍 {String(likes?.total_count ?? 0)}</span>
+                    <span style={{ color: "#f59e0b" }}>💬 {String(comments?.total_count ?? 0)}</span>
+                    <span style={{ color: "#34d399" }}>🔁 {String(shares?.count ?? 0)}</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
+
+      {/* Ads Overview */}
+      <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
+        <p className="text-[9px] font-black uppercase tracking-widest mb-4" style={{ color: "#f59e0b" }}>📣 Ads Overview</p>
+        <div className="rounded-xl bg-white/[0.03] border border-white/5 p-6 text-center">
+          <p className="text-slate-700 text-[10px]">— Coming Soon —</p>
+        </div>
+      </section>
+
+      {/* AI Analyst */}
+      <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
+        <p className="text-[9px] font-black uppercase tracking-widest mb-4" style={{ color: "#f59e0b" }}>🤖 AI Analyst & Strategy</p>
+        <div className="rounded-xl bg-white/[0.03] border border-white/5 p-6 text-center">
+          <p className="text-slate-700 text-[10px]">— Coming Soon —</p>
+        </div>
+      </section>
+
+    </div>
+  );
+}
+
 export default function Home() {
   const [activeSystem, setActiveSystem] = useState<SystemType>("gamedev");
   const [command, setCommand] = useState("");
@@ -1208,46 +1316,7 @@ export default function Home() {
 
       {/* MARKETING SETUP */}
       {activeSystem === "marketing" && (
-        <div className="mt-6 space-y-6">
-
-          {/* Page Overview */}
-          <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
-            <p className="text-[9px] font-black uppercase tracking-widest mb-4" style={{ color: "#f59e0b" }}>📊 Page Overview</p>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              {["Followers", "Reach (7 วัน)", "Impressions", "Engagement"].map((label) => (
-                <div key={label} className="rounded-xl bg-white/[0.03] border border-white/5 p-4 text-center">
-                  <p className="text-[8px] uppercase tracking-widest text-slate-600 mb-2">{label}</p>
-                  <p className="text-2xl font-black text-slate-700">—</p>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          {/* Post Performance */}
-          <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
-            <p className="text-[9px] font-black uppercase tracking-widest mb-4" style={{ color: "#f59e0b" }}>📝 Post Performance</p>
-            <div className="rounded-xl bg-white/[0.03] border border-white/5 p-6 text-center">
-              <p className="text-slate-700 text-[10px]">— Coming Soon —</p>
-            </div>
-          </section>
-
-          {/* Ads Overview */}
-          <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
-            <p className="text-[9px] font-black uppercase tracking-widest mb-4" style={{ color: "#f59e0b" }}>📣 Ads Overview</p>
-            <div className="rounded-xl bg-white/[0.03] border border-white/5 p-6 text-center">
-              <p className="text-slate-700 text-[10px]">— Coming Soon —</p>
-            </div>
-          </section>
-
-          {/* AI Analyst */}
-          <section className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
-            <p className="text-[9px] font-black uppercase tracking-widest mb-4" style={{ color: "#f59e0b" }}>🤖 AI Analyst & Strategy</p>
-            <div className="rounded-xl bg-white/[0.03] border border-white/5 p-6 text-center">
-              <p className="text-slate-700 text-[10px]">— Coming Soon —</p>
-            </div>
-          </section>
-
-        </div>
+        <MarketingTab api={API} />
       )}
 
       <footer className="py-10 text-center text-[8px] uppercase tracking-[1em] text-slate-800">

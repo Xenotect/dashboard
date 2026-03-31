@@ -875,6 +875,53 @@ async def fb_post(data: dict):
     return {"success": False, "error": f"Facebook: {error_msg}"}
 
 
+@app.get("/marketing-stats")
+async def marketing_stats():
+    page_id = os.environ.get("FB_PAGE_ID")
+    token = os.environ.get("FB_PAGE_ACCESS_TOKEN")
+    if not page_id or not token:
+        return {"error": "ไม่พบ FB_PAGE_ID หรือ FB_PAGE_ACCESS_TOKEN"}
+
+    # ข้อมูลพื้นฐานเพจ
+    page_resp = requests.get(
+        f"https://graph.facebook.com/v19.0/{page_id}",
+        params={"fields": "name,fan_count,followers_count", "access_token": token}
+    ).json()
+
+    # Insights 7 วัน
+    insights_resp = requests.get(
+        f"https://graph.facebook.com/v19.0/{page_id}/insights",
+        params={
+            "metric": "page_impressions,page_engaged_users,page_post_engagements",
+            "period": "week",
+            "access_token": token
+        }
+    ).json()
+
+    # โพสต์ล่าสุด 10 อัน
+    posts_resp = requests.get(
+        f"https://graph.facebook.com/v19.0/{page_id}/posts",
+        params={
+            "fields": "message,created_time,likes.summary(true),comments.summary(true),shares",
+            "limit": 10,
+            "access_token": token
+        }
+    ).json()
+
+    # แปลง insights เป็น dict
+    insights = {}
+    for item in insights_resp.get("data", []):
+        key = item.get("name")
+        values = item.get("values", [])
+        insights[key] = values[-1].get("value", 0) if values else 0
+
+    return {
+        "page": page_resp,
+        "insights": insights,
+        "posts": posts_resp.get("data", [])
+    }
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=5000)
