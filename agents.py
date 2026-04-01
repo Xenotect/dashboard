@@ -14,6 +14,21 @@ from jose import JWTError, jwt
 
 load_dotenv()  # โหลด .env file อัตโนมัติ
 
+def clean_caption(text: str) -> str:
+    """ลบ hashtag และข้อมูลติดต่อออกจาก caption"""
+    lines = text.splitlines()
+    cleaned = []
+    for line in lines:
+        # ข้ามบรรทัดที่มี hashtag
+        if re.search(r'#\S+', line):
+            continue
+        # ข้ามบรรทัดที่มีข้อมูลติดต่อ
+        if re.search(r'(LINE|line|ไลน์|@\w+|\d{3}[-\s]?\d{3,4}[-\s]?\d{4}|โทร|Tel|tel\.?|สาขา.*:)', line):
+            continue
+        cleaned.append(line)
+    # ตัด blank lines ส่วนเกินท้ายข้อความ
+    return "\n".join(cleaned).strip()
+
 # Base directory — ทุก file ใช้ path เดียวกันหมด
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -657,8 +672,8 @@ async def ask_facebook(data: dict, _user: dict = Depends(get_current_user)):
 
     result = crew.kickoff()
     save_mission_log(selected_agent_name, user_command, result)
-
-    return {"result": str(result)}
+    cleaned = clean_caption(str(result)) if selected_agent_name == "FB Writer" else str(result)
+    return {"result": cleaned}
 
 @app.post("/ask-xeno")
 async def ask_xeno(data: dict, _user: dict = Depends(get_current_user)):
@@ -844,7 +859,7 @@ async def fb_smart_post(data: dict, _user: dict = Depends(get_current_user)):
     return {
         "selected_id": selected_img["id"],
         "preview_url": f"https://drive.google.com/thumbnail?id={selected_img['id']}&sz=w400",
-        "caption": result_data.get("caption", ""),
+        "caption": clean_caption(result_data.get("caption", "")),
         "reason": result_data.get("reason", ""),
         "remaining": len(available) - 1,
     }
