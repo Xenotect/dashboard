@@ -388,8 +388,16 @@ export default function Home() {
   const [fbPrompt, setFbPrompt] = useState("");
   const [fbCaption, setFbCaption] = useState("");
   const [fbFooter, setFbFooter] = useState("📞 เบอร์ติดต่อ: \n💬 Line ID: \n📍 ที่อยู่ร้าน: ");
+  const [fbHashtags, setFbHashtags] = useState("");
   const [fbCaptionLoading, setFbCaptionLoading] = useState(false);
   const [footerSaved, setFooterSaved] = useState(false);
+
+  const categoryHashtags: Record<string, string> = {
+    "ทำสีผม": "#ทำสีผม #สีผม #ย้อมผม #colorhair #ร้านทำผม #KUDOS",
+    "ตัดผม": "#ตัดผม #ทรงผม #hairstyle #ร้านตัดผม #KUDOS",
+    "ยืดผม": "#ยืดผม #ผมตรง #straighthair #ร้านทำผม #KUDOS",
+    "ทรงผม": "#ทรงผม #hairstyle #ผมสวย #ร้านทำผม #KUDOS",
+  };
   const [showFolderConfig, setShowFolderConfig] = useState(false);
   const [folderCategories, setFolderCategories] = useState([
     { name: "ทำสีผม", emoji: "🎨", url: process.env.NEXT_PUBLIC_FOLDER_TAMSIPOM || "" },
@@ -633,9 +641,10 @@ export default function Home() {
     setFbPostLoading(true);
     setFbPostResult(null);
     try {
+      const fullFooter = [fbFooter, fbHashtags].filter(Boolean).join("\n\n");
       const body: Record<string, string | null> = {
         caption: fbCaption,
-        footer: fbFooter,
+        footer: fullFooter,
         file_ids: JSON.stringify(selectedImageIds),
       };
       if (scheduleEnabled && scheduledTime) {
@@ -1195,7 +1204,7 @@ export default function Home() {
                 </div>
                 <div className="flex flex-wrap gap-2 mb-2">
                   {[
-                    { label: "📌 Kudos ดัดดิจิตอล", text: `📌 Kudos ดัดดิจิตอล "เพราะผมสวยเป็นเรื่องของมืออาชีพ"\n🔹️ สาขา ราชพฤกษ์      : 064-984-5587\n🔹️ สาขา คริสตัลปาร์ค  : 082-918-6859\n🔹️ สาขา นวมินทร์        : 097-1576-242\n📌 ติดต่อผ่าน LINE : @kudosbytarakorn` },
+                    { label: "📌 Kudos ดัดดิจิตอล", text: `📌 Kudos ดัดดิจิตอล "เพราะผมสวยเป็นเรื่องของมืออาชีพ"\n🔹️ สาขา ราชพฤกษ์      : 064-984-5587\n🔹️ สาขา คริสตัลปาร์ค  : 082-918-6859\n🔹️ สาขา นวมินทร์        : 097-157-6242\n📌 ติดต่อผ่าน LINE : @kudosbytarakorn` },
                   ].map((preset) => (
                     <button
                       key={preset.label}
@@ -1213,6 +1222,18 @@ export default function Home() {
                   value={fbFooter}
                   onChange={(e) => setFbFooter(e.target.value)}
                 />
+                <div className="mt-3">
+                  <label className="text-[9px] font-black uppercase tracking-widest mb-1.5 block" style={{ color: "#a78bfa" }}>
+                    # Hashtags — auto จาก category
+                  </label>
+                  <textarea
+                    className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-sm placeholder:text-slate-700 focus:outline-none resize-none min-h-[50px] leading-relaxed"
+                    style={{ color: "#a78bfa" }}
+                    placeholder="เลือก category ด้านขวาเพื่อ auto-fill..."
+                    value={fbHashtags}
+                    onChange={(e) => setFbHashtags(e.target.value)}
+                  />
+                </div>
               </div>
             </div>
 
@@ -1270,8 +1291,10 @@ export default function Home() {
                           setActiveFolderIdx(null);
                           setDriveImages([]);
                           setDriveFolders([]);
+                          setFbHashtags("");
                         } else {
                           setActiveFolderIdx(idx);
+                          setFbHashtags(categoryHashtags[cat.name] || "");
                           console.log("Category URL:", JSON.stringify(cat.url));
                           handleLoadDriveImages(cat.url.trim(), cat.name);
                         }
@@ -1369,6 +1392,8 @@ export default function Home() {
                     {fbCaption}
                     {fbCaption && fbFooter && "\n\n"}
                     {fbFooter}
+                    {fbHashtags && "\n\n"}
+                    <span style={{ color: "#a78bfa" }}>{fbHashtags}</span>
                   </p>
                 </div>
               )}
