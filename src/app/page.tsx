@@ -1111,49 +1111,209 @@ export default function Home() {
       {activeSystem === "facebook" && (
         <div className="mt-10 rounded-3xl border p-8" style={{ borderColor: "#1877F220", backgroundColor: "#1877F205" }}>
           {/* Header */}
-          <div className="flex items-center gap-4 mb-8">
-            <span className="text-[9px] font-black uppercase tracking-[0.5em]" style={{ color: "#00B2FF" }}>
-              📝 Create Post
-            </span>
+          <div className="flex items-center gap-4 mb-6">
+            <span className="text-[9px] font-black uppercase tracking-[0.5em]" style={{ color: "#00B2FF" }}>📝 Create Post</span>
             <div className="h-px flex-1" style={{ backgroundColor: "#1877F220" }} />
             <span className="text-[8px] text-slate-600">POST TO FACEBOOK PAGE</span>
           </div>
+
+          {/* ── STEPPER ── */}
+          {(() => {
+            const hasImage = localFiles.length > 0 || selectedImageIds.length > 0;
+            const hasCaption = fbCaption.length > 0;
+            const steps = [
+              { n: 1, label: "รูปภาพ", done: hasImage },
+              { n: 2, label: "Generate", done: hasCaption },
+              { n: 3, label: "Footer", done: hasCaption },
+              { n: 4, label: "Hashtag", done: hasCaption },
+              { n: 5, label: "Post", done: false },
+            ];
+            const activeStep = !hasImage ? 1 : !hasCaption ? 2 : 5;
+            return (
+              <div className="flex items-center gap-0 mb-8">
+                {steps.map((s, i) => (
+                  <div key={s.n} className="flex items-center flex-1">
+                    <div className="flex flex-col items-center gap-1 flex-1">
+                      <div className="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-black transition-all"
+                        style={{
+                          backgroundColor: s.done ? "#1877F2" : s.n === activeStep ? "#1877F240" : "#ffffff08",
+                          border: `2px solid ${s.done ? "#1877F2" : s.n === activeStep ? "#1877F2" : "#ffffff10"}`,
+                          color: s.done ? "#fff" : s.n === activeStep ? "#1877F2" : "#475569",
+                        }}
+                      >
+                        {s.done ? "✓" : s.n}
+                      </div>
+                      <span className="text-[7px] uppercase tracking-widest font-black"
+                        style={{ color: s.done ? "#1877F2" : s.n === activeStep ? "#94a3b8" : "#334155" }}
+                      >{s.label}</span>
+                    </div>
+                    {i < steps.length - 1 && (
+                      <div className="h-px w-full mx-1 mb-4 transition-all"
+                        style={{ backgroundColor: s.done ? "#1877F2" : "#ffffff08" }} />
+                    )}
+                  </div>
+                ))}
+              </div>
+            );
+          })()}
 
           <div className="grid lg:grid-cols-2 gap-8">
             {/* LEFT COLUMN */}
             <div className="space-y-6">
 
-              {/* STEP 1: AI Prompt */}
+              {/* STEP 1: รูปภาพ */}
+              <div>
+                <label className="text-[9px] font-black uppercase tracking-widest mb-3 block" style={{ color: "#42B72A" }}>
+                  Step 1 — รูปภาพ
+                </label>
+
+                {/* LOCAL UPLOAD */}
+                <div className="mb-4 p-4 rounded-2xl border border-white/5 bg-white/[0.02]">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">📱 อัพโหลดจากเครื่อง</span>
+                    {localFiles.length > 0 && (
+                      <button onClick={() => { setLocalFiles([]); setLocalPreviews([]); }} className="text-[8px] text-red-400 uppercase tracking-widest font-black">✕ ล้าง</button>
+                    )}
+                  </div>
+                  <label className="flex items-center justify-center gap-2 w-full py-3 rounded-xl cursor-pointer transition-all"
+                    style={{ background: "#42B72A15", border: "1px dashed #42B72A40", color: "#42B72A" }}>
+                    <span className="text-[9px] font-black uppercase tracking-widest">
+                      {localFiles.length > 0 ? `✓ เลือกแล้ว ${localFiles.length} รูป — คลิกเพื่อเปลี่ยน` : "📂 เลือกรูปจากเครื่อง / มือถือ"}
+                    </span>
+                    <input type="file" accept="image/*" multiple className="hidden"
+                      onChange={(e) => {
+                        const files = Array.from(e.target.files || []);
+                        setLocalFiles(files);
+                        setLocalPreviews(files.map((f) => URL.createObjectURL(f)));
+                        setSelectedImageIds([]);
+                      }} />
+                  </label>
+                  {localPreviews.length > 0 && (
+                    <div className="flex gap-2 mt-2 flex-wrap">
+                      {localPreviews.map((src, i) => <img key={i} src={src} alt="" className="w-16 h-16 object-cover rounded-lg border border-white/10" />)}
+                    </div>
+                  )}
+                </div>
+
+                {/* DIVIDER */}
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="h-px flex-1 bg-white/5" />
+                  <span className="text-[8px] text-slate-700 uppercase tracking-widest">หรือใช้ Google Drive</span>
+                  <div className="h-px flex-1 bg-white/5" />
+                </div>
+
+                {/* URL Config */}
+                {showFolderConfig && (
+                  <div className="mb-3 p-4 rounded-2xl bg-white/[0.02] border border-white/5 space-y-2">
+                    {folderCategories.map((cat, idx) => (
+                      <div key={idx} className="flex items-center gap-2">
+                        <span className="text-[9px] w-20 shrink-0 font-bold text-slate-500">{cat.emoji} {cat.name}</span>
+                        <input type="text" className="flex-1 bg-white/[0.04] border border-white/10 rounded-lg px-3 py-2 text-[10px] text-white placeholder:text-slate-700 focus:outline-none"
+                          placeholder="https://drive.google.com/drive/folders/..." value={cat.url}
+                          onChange={(e) => { const u = [...folderCategories]; u[idx] = { ...u[idx], url: e.target.value }; setFolderCategories(u); }} />
+                      </div>
+                    ))}
+                    <button onClick={() => { localStorage.setItem("fb_folder_categories", JSON.stringify(folderCategories)); setShowFolderConfig(false); }}
+                      className="w-full mt-2 py-2 rounded-lg font-black text-[9px] uppercase tracking-widest" style={{ backgroundColor: "#42B72A", color: "#fff" }}>
+                      💾 บันทึก
+                    </button>
+                  </div>
+                )}
+
+                {/* Category Buttons */}
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {folderCategories.map((cat, idx) => (
+                    <button key={idx} disabled={!cat.url}
+                      onClick={() => {
+                        if (!cat.url) return;
+                        if (activeFolderIdx === idx) { setActiveFolderIdx(null); setDriveImages([]); setDriveFolders([]); setFbHashtags(""); }
+                        else { setActiveFolderIdx(idx); setFbHashtags(categoryHashtags[cat.name] || ""); handleLoadDriveImages(cat.url.trim(), cat.name); }
+                      }}
+                      className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest px-4 py-2 rounded-xl transition-all disabled:opacity-30"
+                      style={{ backgroundColor: activeFolderIdx === idx ? "#42B72A20" : "rgba(255,255,255,0.04)", border: `1px solid ${activeFolderIdx === idx ? "#42B72A60" : "rgba(255,255,255,0.08)"}`, color: activeFolderIdx === idx ? "#42B72A" : "#94a3b8" }}>
+                      {cat.emoji} {cat.name}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Auto Select */}
+                <button onClick={handleSmartPost} disabled={fbSmartLoading || !activeFolderUrl}
+                  className="w-full py-3 rounded-xl font-black text-[10px] uppercase tracking-widest disabled:opacity-30 transition-all flex items-center justify-center gap-2"
+                  style={{ backgroundColor: "#7B6CF7", color: "#fff", boxShadow: fbSmartLoading ? "none" : "0 4px 16px #7B6CF740" }}>
+                  {fbSmartLoading ? <><span className="animate-spin">⟳</span> AI กำลังเลือกรูป + เขียน Caption...</> : <>🤖 Auto Select — AI เลือกรูป + เขียน Caption</>}
+                </button>
+                {fbSmartReason && (
+                  <div className="mt-2 px-4 py-2 rounded-xl bg-white/[0.03] border border-white/5">
+                    <p className="text-[9px] text-slate-500 italic">💡 {fbSmartReason}</p>
+                    {fbRemaining !== null && <p className="text-[8px] text-slate-700 mt-1">รูปที่ยังไม่ได้ใช้: {fbRemaining} รูป</p>}
+                  </div>
+                )}
+                {driveLoading && <p className="text-[9px] text-slate-600 italic mt-2">กำลังโหลด...</p>}
+                {driveImages.length > 0 && (
+                  <div className="grid grid-cols-4 gap-2 mt-2">
+                    {driveImages.map((img) => (
+                      <button key={img.id} onClick={() => setSelectedImageIds((prev) => prev.includes(img.id) ? prev.filter((id) => id !== img.id) : [...prev, img.id])}
+                        className="relative rounded-xl overflow-hidden aspect-square border-2 transition-all"
+                        style={{ borderColor: selectedImageIds.includes(img.id) ? "#1877F2" : "transparent", boxShadow: selectedImageIds.includes(img.id) ? "0 0 12px #1877F255" : "none" }}>
+                        <img src={img.previewUrl} alt={img.name} className="w-full h-full object-cover"
+                          onError={(e) => { e.currentTarget.style.display = "none"; e.currentTarget.parentElement!.style.backgroundColor = "#1e293b"; }} />
+                        {selectedImageIds.includes(img.id) && (
+                          <div className="absolute inset-0 flex items-center justify-center" style={{ backgroundColor: "#1877F240" }}>
+                            <span className="text-white text-xl font-black">{selectedImageIds.indexOf(img.id) + 1}</span>
+                          </div>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                )}
+                {driveImages.length === 0 && !driveLoading && activeFolderIdx !== null && (
+                  <p className="text-[9px] text-slate-600 italic">ยังไม่มีรูป — กด Load เพื่อดึงรูปจาก folder</p>
+                )}
+              </div>
+
+              {/* STEP 3: Footer */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-[9px] font-black uppercase tracking-widest" style={{ color: "#00B2FF" }}>Step 3 — ข้อความท้ายโพสต์</label>
+                  <button onClick={() => { localStorage.setItem("fb_footer", fbFooter); setFooterSaved(true); setTimeout(() => setFooterSaved(false), 2000); }}
+                    className="text-[8px] font-black uppercase tracking-widest px-3 py-1 rounded-lg transition-all"
+                    style={{ backgroundColor: footerSaved ? "#42B72A20" : "#00B2FF15", color: footerSaved ? "#42B72A" : "#00B2FF" }}>
+                    {footerSaved ? "✓ Saved!" : "💾 Save Default"}
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {[{ label: "📌 Auto Fill", text: `📌 Kudos ดัดดิจิตอล "เพราะผมสวยเป็นเรื่องของมืออาชีพ"\n🔹️ สาขา ราชพฤกษ์      : 064-984-5587\n🔹️ สาขา คริสตัลปาร์ค  : 082-918-6859\n🔹️ สาขา นวมินทร์        : 097-157-6242\n📌 ติดต่อผ่าน LINE : @kudosbytarakorn` }]
+                    .map((p) => (
+                      <button key={p.label} onClick={() => setFbFooter(p.text)}
+                        className="text-[8px] font-black uppercase tracking-widest px-3 py-1 rounded-lg transition-all"
+                        style={{ backgroundColor: "#00B2FF15", color: "#00B2FF", border: "1px solid #00B2FF30" }}>{p.label}</button>
+                    ))}
+                </div>
+                <textarea className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-slate-700 focus:outline-none resize-none min-h-[90px] leading-relaxed"
+                  placeholder="เบอร์โทร, Line, ที่อยู่..." value={fbFooter} onChange={(e) => setFbFooter(e.target.value)} />
+              </div>
+            </div>
+
+            {/* RIGHT COLUMN */}
+            <div className="space-y-6">
+
+              {/* STEP 2: Generate Caption */}
               <div>
                 <label className="text-[9px] font-black uppercase tracking-widest mb-2 block" style={{ color: "#1877F2" }}>
-                  Step 1 — บอก AI ว่าอยากโพสต์อะไร
+                  Step 2 — Generate Caption
                 </label>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
+                <div className="flex gap-2 mb-4">
+                  <input type="text"
                     className="flex-1 bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-slate-700 focus:outline-none"
-                    placeholder='เช่น "โพสต์คอนเทนต์ผมดัดดิจิตอล" หรือ "โปรโมชั่นลดราคา 20%"'
-                    value={fbPrompt}
-                    onChange={(e) => setFbPrompt(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleGenerateCaption()}
-                  />
-                  <button
-                    onClick={handleGenerateCaption}
-                    disabled={fbCaptionLoading || !fbPrompt}
+                    placeholder='เช่น "โพสต์คอนเทนต์ผมดัดดิจิตอล"'
+                    value={fbPrompt} onChange={(e) => setFbPrompt(e.target.value)} onKeyDown={(e) => e.key === "Enter" && handleGenerateCaption()} />
+                  <button onClick={handleGenerateCaption} disabled={fbCaptionLoading || !fbPrompt}
                     className="px-5 py-3 rounded-xl font-black text-[9px] uppercase tracking-widest disabled:opacity-30 transition-all"
-                    style={{ backgroundColor: "#1877F2", color: "#fff" }}
-                  >
+                    style={{ backgroundColor: "#1877F2", color: "#fff" }}>
                     {fbCaptionLoading ? "..." : "🤖 Generate"}
                   </button>
                 </div>
-              </div>
-
-              {/* STEP 2: Tone Dropdown */}
-              <div>
-                <label className="text-[9px] font-black uppercase tracking-widest mb-2 block" style={{ color: "#1877F2" }}>
-                  Step 2 — อารมณ์คอนเทนต์
-                </label>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-2 gap-2 mb-4">
                   {[
                     { value: "Educational", label: "📚 Educational", desc: "ให้ความรู้" },
                     { value: "Storytelling", label: "📖 Storytelling", desc: "เล่าเรื่อง" },
@@ -1166,16 +1326,9 @@ export default function Home() {
                     { value: "Trust", label: "🤝 Trust", desc: "สร้างความเชื่อมั่น" },
                     { value: "Social Proof", label: "⭐ Social Proof", desc: "รีวิว/ลูกค้าจริง" },
                   ].map((t) => (
-                    <button
-                      key={t.value}
-                      onClick={() => setFbTone(t.value)}
+                    <button key={t.value} onClick={() => setFbTone(t.value)}
                       className="flex items-center gap-2 px-3 py-2.5 rounded-xl border text-left transition-all"
-                      style={{
-                        borderColor: fbTone === t.value ? "#1877F2" : "rgba(255,255,255,0.06)",
-                        backgroundColor: fbTone === t.value ? "#1877F215" : "rgba(255,255,255,0.02)",
-                        boxShadow: fbTone === t.value ? "0 0 12px #1877F225" : "none",
-                      }}
-                    >
+                      style={{ borderColor: fbTone === t.value ? "#1877F2" : "rgba(255,255,255,0.06)", backgroundColor: fbTone === t.value ? "#1877F215" : "rgba(255,255,255,0.02)", boxShadow: fbTone === t.value ? "0 0 12px #1877F225" : "none" }}>
                       <div>
                         <p className="text-[10px] font-black text-white">{t.label}</p>
                         <p className="text-[8px] text-slate-600">{t.desc}</p>
@@ -1183,364 +1336,88 @@ export default function Home() {
                     </button>
                   ))}
                 </div>
+                <label className="text-[9px] font-black uppercase tracking-widest mb-2 block" style={{ color: "#00B2FF" }}>Caption (แก้ได้)</label>
+                <textarea className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-slate-700 focus:outline-none resize-none min-h-[120px] leading-relaxed"
+                  placeholder="Caption จะปรากฏที่นี่หลังจาก Generate..." value={fbCaption} onChange={(e) => setFbCaption(e.target.value)} />
               </div>
 
-              {/* Caption output */}
+              {/* STEP 4: Hashtag */}
               <div>
-                <label className="text-[9px] font-black uppercase tracking-widest mb-2 block" style={{ color: "#00B2FF" }}>
-                  Caption (แก้ได้)
+                <label className="text-[9px] font-black uppercase tracking-widest mb-1.5 block" style={{ color: "#a78bfa" }}>
+                  Step 4 — Hashtag
                 </label>
-                <textarea
-                  className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-slate-700 focus:outline-none resize-none min-h-[120px] leading-relaxed"
-                  placeholder="Caption จะปรากฏที่นี่หลังจาก Generate..."
-                  value={fbCaption}
-                  onChange={(e) => setFbCaption(e.target.value)}
-                />
-              </div>
-
-              {/* STEP 3: Footer */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-[9px] font-black uppercase tracking-widest" style={{ color: "#00B2FF" }}>
-                    Step 3 — ข้อความท้ายโพสต์
-                  </label>
-                  <button
-                    onClick={() => {
-                      localStorage.setItem("fb_footer", fbFooter);
-                      setFooterSaved(true);
-                      setTimeout(() => setFooterSaved(false), 2000);
-                    }}
-                    className="text-[8px] font-black uppercase tracking-widest px-3 py-1 rounded-lg transition-all"
-                    style={{ backgroundColor: footerSaved ? "#42B72A20" : "#00B2FF15", color: footerSaved ? "#42B72A" : "#00B2FF" }}
-                  >
-                    {footerSaved ? "✓ Saved!" : "💾 Save Default"}
-                  </button>
-                </div>
-                <div className="flex flex-wrap gap-2 mb-2">
+                <div className="flex flex-wrap gap-1.5 mb-2">
                   {[
-                    { label: "📌 Kudos ดัดดิจิตอล", text: `📌 Kudos ดัดดิจิตอล "เพราะผมสวยเป็นเรื่องของมืออาชีพ"\n🔹️ สาขา ราชพฤกษ์      : 064-984-5587\n🔹️ สาขา คริสตัลปาร์ค  : 082-918-6859\n🔹️ สาขา นวมินทร์        : 097-157-6242\n📌 ติดต่อผ่าน LINE : @kudosbytarakorn` },
-                  ].map((preset) => (
-                    <button
-                      key={preset.label}
-                      onClick={() => setFbFooter(preset.text)}
-                      className="text-[8px] font-black uppercase tracking-widest px-3 py-1 rounded-lg transition-all"
-                      style={{ backgroundColor: "#00B2FF15", color: "#00B2FF", border: "1px solid #00B2FF30" }}
-                    >
-                      {preset.label}
-                    </button>
-                  ))}
+                    { label: "ราชพฤกษ์", tag: "#ร้านทำผมราชพฤกษ์" },
+                    { label: "คริสตัลปาร์ค", tag: "#ร้านทำผมคริสตัลปาร์ค" },
+                    { label: "นวมินทร์", tag: "#ร้านทำผมนวมินทร์" },
+                  ].map((branch) => {
+                    const active = fbHashtags.includes(branch.tag);
+                    return (
+                      <button key={branch.label}
+                        onClick={() => { if (active) { setFbHashtags(fbHashtags.replace(branch.tag, "").replace(/\s+/g, " ").trim()); } else { setFbHashtags((fbHashtags + " " + branch.tag).trim()); } }}
+                        className="text-[8px] font-black uppercase tracking-widest px-3 py-1 rounded-lg transition-all"
+                        style={{ backgroundColor: active ? "#a78bfa30" : "#ffffff08", color: active ? "#a78bfa" : "#475569", border: `1px solid ${active ? "#a78bfa50" : "#ffffff10"}` }}>
+                        {active ? "✓ " : ""}{branch.label}
+                      </button>
+                    );
+                  })}
                 </div>
-                <textarea
-                  className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-slate-700 focus:outline-none resize-none min-h-[90px] leading-relaxed"
-                  placeholder="เบอร์โทร, Line, ที่อยู่..."
-                  value={fbFooter}
-                  onChange={(e) => setFbFooter(e.target.value)}
-                />
-                <div className="mt-3">
-                  <label className="text-[9px] font-black uppercase tracking-widest mb-1.5 block" style={{ color: "#a78bfa" }}>
-                    # Hashtags — auto จาก category
-                  </label>
-                  <div className="flex flex-wrap gap-1.5 mb-2">
-                    {[
-                      { label: "ราชพฤกษ์", tag: "#ร้านทำผมราชพฤกษ์" },
-                      { label: "คริสตัลปาร์ค", tag: "#ร้านทำผมคริสตัลปาร์ค" },
-                      { label: "นวมินทร์", tag: "#ร้านทำผมนวมินทร์" },
-                    ].map((branch) => {
-                      const active = fbHashtags.includes(branch.tag);
-                      return (
-                        <button
-                          key={branch.label}
-                          onClick={() => {
-                            if (active) {
-                              setFbHashtags(fbHashtags.replace(branch.tag, "").replace(/\s+/g, " ").trim());
-                            } else {
-                              setFbHashtags((fbHashtags + " " + branch.tag).trim());
-                            }
-                          }}
-                          className="text-[8px] font-black uppercase tracking-widest px-3 py-1 rounded-lg transition-all"
-                          style={{
-                            backgroundColor: active ? "#a78bfa30" : "#ffffff08",
-                            color: active ? "#a78bfa" : "#475569",
-                            border: `1px solid ${active ? "#a78bfa50" : "#ffffff10"}`,
-                          }}
-                        >
-                          {active ? "✓ " : ""}{branch.label}
-                        </button>
-                      );
-                    })}
-                  </div>
-                  <textarea
-                    className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-sm placeholder:text-slate-700 focus:outline-none resize-none min-h-[50px] leading-relaxed"
-                    style={{ color: "#a78bfa" }}
-                    placeholder="เลือก category ด้านขวาเพื่อ auto-fill..."
-                    value={fbHashtags}
-                    onChange={(e) => setFbHashtags(e.target.value)}
-                  />
-                </div>
+                <textarea className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-sm placeholder:text-slate-700 focus:outline-none resize-none min-h-[50px] leading-relaxed"
+                  style={{ color: "#a78bfa" }} placeholder="auto-fill เมื่อเลือก category..." value={fbHashtags} onChange={(e) => setFbHashtags(e.target.value)} />
               </div>
-            </div>
 
-            {/* RIGHT COLUMN */}
-            <div className="space-y-6">
-
-              {/* STEP 4: รูปภาพ */}
+              {/* STEP 5: Preview & Post */}
               <div>
-                <div className="flex items-center justify-between mb-3">
-                  <label className="text-[9px] font-black uppercase tracking-widest" style={{ color: "#42B72A" }}>
-                    Step 4 — รูปภาพ
-                  </label>
-                </div>
-
-                {/* LOCAL UPLOAD */}
-                <div className="mb-4 p-4 rounded-2xl border border-white/5 bg-white/[0.02]">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">📱 อัพโหลดจากเครื่อง</span>
-                    {localFiles.length > 0 && (
-                      <button
-                        onClick={() => { setLocalFiles([]); setLocalPreviews([]); }}
-                        className="text-[8px] text-red-400 uppercase tracking-widest font-black"
-                      >
-                        ✕ ล้าง
-                      </button>
-                    )}
-                  </div>
-                  <label className="flex items-center justify-center gap-2 w-full py-3 rounded-xl cursor-pointer transition-all"
-                    style={{ background: "#42B72A15", border: "1px dashed #42B72A40", color: "#42B72A" }}
-                  >
-                    <span className="text-[9px] font-black uppercase tracking-widest">
-                      {localFiles.length > 0 ? `✓ เลือกแล้ว ${localFiles.length} รูป — คลิกเพื่อเปลี่ยน` : "📂 เลือกรูปจากเครื่อง / มือถือ"}
-                    </span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      className="hidden"
-                      onChange={(e) => {
-                        const files = Array.from(e.target.files || []);
-                        setLocalFiles(files);
-                        setLocalPreviews(files.map((f) => URL.createObjectURL(f)));
-                        setSelectedImageIds([]);
-                      }}
-                    />
-                  </label>
-                  {localPreviews.length > 0 && (
-                    <div className="flex gap-2 mt-2 flex-wrap">
-                      {localPreviews.map((src, i) => (
-                        <img key={i} src={src} alt="" className="w-16 h-16 object-cover rounded-lg border border-white/10" />
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* DIVIDER */}
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="h-px flex-1 bg-white/5" />
-                  <span className="text-[8px] text-slate-700 uppercase tracking-widest">หรือใช้ Google Drive</span>
-                  <div className="h-px flex-1 bg-white/5" />
-                </div>
-
-                {/* URL Config Panel */}
-                {showFolderConfig && (
-                  <div className="mb-3 p-4 rounded-2xl bg-white/[0.02] border border-white/5 space-y-2">
-                    {folderCategories.map((cat, idx) => (
-                      <div key={idx} className="flex items-center gap-2">
-                        <span className="text-[9px] w-20 shrink-0 font-bold text-slate-500">{cat.emoji} {cat.name}</span>
-                        <input
-                          type="text"
-                          className="flex-1 bg-white/[0.04] border border-white/10 rounded-lg px-3 py-2 text-[10px] text-white placeholder:text-slate-700 focus:outline-none"
-                          placeholder="https://drive.google.com/drive/folders/..."
-                          value={cat.url}
-                          onChange={(e) => {
-                            const updated = [...folderCategories];
-                            updated[idx] = { ...updated[idx], url: e.target.value };
-                            setFolderCategories(updated);
-                          }}
-                        />
+                <label className="text-[9px] font-black uppercase tracking-widest mb-3 block" style={{ color: "#1877F2" }}>Step 5 — Preview & Post</label>
+                {(fbCaption || fbFooter || localPreviews.length > 0 || selectedImageIds.length > 0) && (
+                  <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 mb-4">
+                    <p className="text-[9px] font-black uppercase tracking-widest mb-3 text-slate-600">Preview</p>
+                    {localPreviews.length > 0 && (
+                      <div className="flex gap-2 mb-3 flex-wrap">
+                        {localPreviews.map((src, i) => <img key={i} src={src} alt="" className="rounded-xl object-cover max-h-24 flex-1 min-w-0" />)}
                       </div>
-                    ))}
-                    <button
-                      onClick={() => {
-                        localStorage.setItem("fb_folder_categories", JSON.stringify(folderCategories));
-                        setShowFolderConfig(false);
-                      }}
-                      className="w-full mt-2 py-2 rounded-lg font-black text-[9px] uppercase tracking-widest transition-all"
-                      style={{ backgroundColor: "#42B72A", color: "#fff" }}
-                    >
-                      💾 บันทึก
-                    </button>
-                  </div>
-                )}
-
-                {/* Category Toggle Buttons */}
-                <div className="flex flex-wrap gap-2 mb-3">
-                  {folderCategories.map((cat, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => {
-                        if (!cat.url) return;
-                        if (activeFolderIdx === idx) {
-                          setActiveFolderIdx(null);
-                          setDriveImages([]);
-                          setDriveFolders([]);
-                          setFbHashtags("");
-                        } else {
-                          setActiveFolderIdx(idx);
-                          setFbHashtags(categoryHashtags[cat.name] || "");
-                          console.log("Category URL:", JSON.stringify(cat.url));
-                          handleLoadDriveImages(cat.url.trim(), cat.name);
-                        }
-                      }}
-                      disabled={!cat.url}
-                      className="flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest px-4 py-2 rounded-xl transition-all disabled:opacity-30"
-                      style={{
-                        backgroundColor: activeFolderIdx === idx ? "#42B72A20" : "rgba(255,255,255,0.04)",
-                        border: `1px solid ${activeFolderIdx === idx ? "#42B72A60" : "rgba(255,255,255,0.08)"}`,
-                        color: activeFolderIdx === idx ? "#42B72A" : "#94a3b8",
-                      }}
-                    >
-                      {cat.emoji} {cat.name}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Auto Select Button */}
-                <button
-                  onClick={handleSmartPost}
-                  disabled={fbSmartLoading || !activeFolderUrl}
-                  className="w-full py-3 rounded-xl font-black text-[10px] uppercase tracking-widest disabled:opacity-30 transition-all flex items-center justify-center gap-2"
-                  style={{ backgroundColor: "#7B6CF7", color: "#fff", boxShadow: fbSmartLoading ? "none" : "0 4px 16px #7B6CF740" }}
-                >
-                  {fbSmartLoading
-                    ? <><span className="animate-spin">⟳</span> AI กำลังเลือกรูป + เขียน Caption...</>
-                    : <>🤖 Auto Select — AI เลือกรูป + เขียน Caption</>}
-                </button>
-                {fbSmartReason && (
-                  <div className="mt-2 px-4 py-2 rounded-xl bg-white/[0.03] border border-white/5">
-                    <p className="text-[9px] text-slate-500 italic">💡 {fbSmartReason}</p>
-                    {fbRemaining !== null && (
-                      <p className="text-[8px] text-slate-700 mt-1">รูปที่ยังไม่ได้ใช้: {fbRemaining} รูป</p>
                     )}
+                    {selectedImageIds.length > 0 && localPreviews.length === 0 && (
+                      <div className="flex gap-2 mb-3 flex-wrap">
+                        {selectedImageIds.map((id) => <img key={id} src={driveImages.find((i) => i.id === id)?.previewUrl} alt="selected" className="rounded-xl object-cover max-h-24 flex-1 min-w-0" />)}
+                      </div>
+                    )}
+                    <p className="text-xs text-slate-300 whitespace-pre-wrap leading-relaxed">
+                      {fbCaption}
+                      {fbCaption && fbFooter && "\n\n"}
+                      {fbFooter}
+                      {fbHashtags && "\n\n"}
+                      <span style={{ color: "#a78bfa" }}>{fbHashtags}</span>
+                    </p>
                   </div>
                 )}
-
-                {/* Image Grid */}
-                {driveLoading && (
-                  <p className="text-[9px] text-slate-600 italic mt-2">กำลังโหลด...</p>
-                )}
-                {driveImages.length > 0 && (
-                  <div className="grid grid-cols-4 gap-2 mt-2">
-                    {driveImages.map((img) => (
-                      <button
-                        key={img.id}
-                        onClick={() => setSelectedImageIds((prev) => prev.includes(img.id) ? prev.filter((id) => id !== img.id) : [...prev, img.id])}
-                        className="relative rounded-xl overflow-hidden aspect-square border-2 transition-all"
-                        style={{
-                          borderColor: selectedImageIds.includes(img.id) ? "#1877F2" : "transparent",
-                          boxShadow: selectedImageIds.includes(img.id) ? "0 0 12px #1877F255" : "none",
-                        }}
-                      >
-                        <img
-                          src={img.previewUrl}
-                          alt={img.name}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            e.currentTarget.style.display = "none";
-                            e.currentTarget.parentElement!.style.backgroundColor = "#1e293b";
-                          }}
-                        />
-                        {selectedImageIds.includes(img.id) && (
-                          <div className="absolute inset-0 flex items-center justify-center" style={{ backgroundColor: "#1877F240" }}>
-                            <span className="text-white text-xl font-black">{selectedImageIds.indexOf(img.id) + 1}</span>
-                          </div>
-                        )}
-                      </button>
-                    ))}
-                  </div>
-                )}
-
-                {driveImages.length === 0 && !driveLoading && activeFolderIdx !== null && (
-                  <p className="text-[9px] text-slate-600 italic">ยังไม่มีรูป — กด Load เพื่อดึงรูปจาก folder</p>
-                )}
-              </div>
-
-              {/* PREVIEW */}
-              {(fbCaption || fbFooter) && (
-                <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                  <p className="text-[9px] font-black uppercase tracking-widest mb-3 text-slate-600">Preview</p>
-                  {selectedImageIds.length > 0 && (
-                    <div className="flex gap-2 mb-3 flex-wrap">
-                      {selectedImageIds.map((id) => (
-                        <img
-                          key={id}
-                          src={driveImages.find((i) => i.id === id)?.previewUrl}
-                          alt="selected"
-                          className="rounded-xl object-cover max-h-24 flex-1 min-w-0"
-                        />
-                      ))}
-                    </div>
+                <div className="flex items-center gap-3 mb-4">
+                  <button onClick={() => { setScheduleEnabled(!scheduleEnabled); setScheduledTime(""); }}
+                    className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest px-4 py-2 rounded-lg transition-all"
+                    style={{ backgroundColor: scheduleEnabled ? "#1877F220" : "rgba(255,255,255,0.03)", border: `1px solid ${scheduleEnabled ? "#1877F260" : "rgba(255,255,255,0.06)"}`, color: scheduleEnabled ? "#1877F2" : "#475569" }}>
+                    📅 {scheduleEnabled ? "ตั้งเวลาอยู่" : "ตั้งเวลาโพสต์"}
+                  </button>
+                  {scheduleEnabled && (
+                    <input type="datetime-local" value={scheduledTime} onChange={(e) => setScheduledTime(e.target.value)}
+                      min={new Date(Date.now() + 10 * 60 * 1000).toISOString().slice(0, 16)}
+                      className="text-xs px-3 py-2 rounded-lg outline-none"
+                      style={{ backgroundColor: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "#e2e8f0", colorScheme: "dark" }} />
                   )}
-                  <p className="text-xs text-slate-300 whitespace-pre-wrap leading-relaxed">
-                    {fbCaption}
-                    {fbCaption && fbFooter && "\n\n"}
-                    {fbFooter}
-                    {fbHashtags && "\n\n"}
-                    <span style={{ color: "#a78bfa" }}>{fbHashtags}</span>
-                  </p>
                 </div>
-              )}
+                <div className="flex items-center gap-4">
+                  <button onClick={handleFbPost} disabled={fbPostLoading || !fbCaption || (scheduleEnabled && !scheduledTime)}
+                    className="flex items-center gap-3 px-10 py-4 rounded-xl font-black text-sm uppercase tracking-widest transition-all disabled:opacity-30"
+                    style={{ backgroundColor: "#1877F2", color: "#fff", boxShadow: "0 6px 24px #1877F240" }}>
+                    {fbPostLoading ? (scheduleEnabled ? "กำลังตั้งเวลา..." : "กำลังโพสต์...") : scheduleEnabled ? "📅 Schedule Post" : "📘 Post to Facebook"}
+                  </button>
+                  {fbCaption && (
+                    <button onClick={() => { setFbCaption(""); setFbPrompt(""); setSelectedImageIds([]); setLocalFiles([]); setLocalPreviews([]); setFbPostResult(null); setScheduleEnabled(false); setScheduledTime(""); }}
+                      className="text-[9px] text-slate-700 hover:text-slate-400 uppercase tracking-widest font-bold transition">Reset</button>
+                  )}
+                </div>
+              </div>
             </div>
-          </div>
-
-          {/* SCHEDULE TOGGLE */}
-          <div className="mt-6 flex items-center gap-3">
-            <button
-              onClick={() => { setScheduleEnabled(!scheduleEnabled); setScheduledTime(""); }}
-              className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest px-4 py-2 rounded-lg transition-all"
-              style={{
-                backgroundColor: scheduleEnabled ? "#1877F220" : "rgba(255,255,255,0.03)",
-                border: `1px solid ${scheduleEnabled ? "#1877F260" : "rgba(255,255,255,0.06)"}`,
-                color: scheduleEnabled ? "#1877F2" : "#475569",
-              }}
-            >
-              📅 {scheduleEnabled ? "ตั้งเวลาอยู่" : "ตั้งเวลาโพสต์"}
-            </button>
-            {scheduleEnabled && (
-              <input
-                type="datetime-local"
-                value={scheduledTime}
-                onChange={(e) => setScheduledTime(e.target.value)}
-                min={new Date(Date.now() + 10 * 60 * 1000).toISOString().slice(0, 16)}
-                className="text-xs px-3 py-2 rounded-lg outline-none"
-                style={{
-                  backgroundColor: "rgba(255,255,255,0.05)",
-                  border: "1px solid rgba(255,255,255,0.1)",
-                  color: "#e2e8f0",
-                  colorScheme: "dark",
-                }}
-              />
-            )}
-          </div>
-
-          {/* POST BUTTON */}
-          <div className="mt-4 flex items-center gap-4">
-            <button
-              onClick={handleFbPost}
-              disabled={fbPostLoading || !fbCaption || (scheduleEnabled && !scheduledTime)}
-              className="flex items-center gap-3 px-10 py-4 rounded-xl font-black text-sm uppercase tracking-widest transition-all disabled:opacity-30"
-              style={{ backgroundColor: "#1877F2", color: "#fff", boxShadow: "0 6px 24px #1877F240" }}
-            >
-              {fbPostLoading
-                ? (scheduleEnabled ? "กำลังตั้งเวลา..." : "กำลังโพสต์...")
-                : scheduleEnabled ? "📅 Schedule Post" : "📘 Post to Facebook"}
-            </button>
-            {fbCaption && (
-              <button
-                onClick={() => { setFbCaption(""); setFbPrompt(""); setSelectedImageIds([]); setFbPostResult(null); setScheduleEnabled(false); setScheduledTime(""); }}
-                className="text-[9px] text-slate-700 hover:text-slate-400 uppercase tracking-widest font-bold transition"
-              >
-                Reset
-              </button>
-            )}
           </div>
 
           {/* RESULT */}
