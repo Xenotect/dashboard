@@ -807,6 +807,11 @@ async def fb_smart_post(data: dict, _user: dict = Depends(get_current_user)):
 
 คำสั่งเพิ่มเติม: {prompt}
 
+กฎสำคัญสำหรับ caption:
+- ห้ามใส่ hashtag (#) ทุกกรณี
+- ห้ามใส่ข้อมูลติดต่อ เบอร์โทร Line ID ที่อยู่ หรือ CTA ชวนทัก
+- เขียนเฉพาะเนื้อหาหลักเท่านั้น
+
 ตอบเป็น JSON เท่านั้น ไม่มีข้อความอื่น:
 {{"selected_id": "ID ของรูปที่เลือก", "reason": "เหตุผลสั้นๆ", "caption": "caption ที่เขียน"}}"""
     })
