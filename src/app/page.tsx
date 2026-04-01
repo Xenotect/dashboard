@@ -1271,27 +1271,6 @@ export default function Home() {
                 )}
               </div>
 
-              {/* STEP 3: Footer */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-[9px] font-black uppercase tracking-widest" style={{ color: "#00B2FF" }}>Step 3 — ข้อความท้ายโพสต์</label>
-                  <button onClick={() => { localStorage.setItem("fb_footer", fbFooter); setFooterSaved(true); setTimeout(() => setFooterSaved(false), 2000); }}
-                    className="text-[8px] font-black uppercase tracking-widest px-3 py-1 rounded-lg transition-all"
-                    style={{ backgroundColor: footerSaved ? "#42B72A20" : "#00B2FF15", color: footerSaved ? "#42B72A" : "#00B2FF" }}>
-                    {footerSaved ? "✓ Saved!" : "💾 Save Default"}
-                  </button>
-                </div>
-                <div className="flex flex-wrap gap-2 mb-2">
-                  {[{ label: "📌 Auto Fill", text: `📌 Kudos ดัดดิจิตอล "เพราะผมสวยเป็นเรื่องของมืออาชีพ"\n🔹️ สาขา ราชพฤกษ์      : 064-984-5587\n🔹️ สาขา คริสตัลปาร์ค  : 082-918-6859\n🔹️ สาขา นวมินทร์        : 097-157-6242\n📌 ติดต่อผ่าน LINE : @kudosbytarakorn` }]
-                    .map((p) => (
-                      <button key={p.label} onClick={() => setFbFooter(p.text)}
-                        className="text-[8px] font-black uppercase tracking-widest px-3 py-1 rounded-lg transition-all"
-                        style={{ backgroundColor: "#00B2FF15", color: "#00B2FF", border: "1px solid #00B2FF30" }}>{p.label}</button>
-                    ))}
-                </div>
-                <textarea className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-slate-700 focus:outline-none resize-none min-h-[90px] leading-relaxed"
-                  placeholder="เบอร์โทร, Line, ที่อยู่..." value={fbFooter} onChange={(e) => setFbFooter(e.target.value)} />
-              </div>
             </div>
 
             {/* RIGHT COLUMN */}
@@ -1339,6 +1318,28 @@ export default function Home() {
                 <label className="text-[9px] font-black uppercase tracking-widest mb-2 block" style={{ color: "#00B2FF" }}>Caption (แก้ได้)</label>
                 <textarea className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-slate-700 focus:outline-none resize-none min-h-[120px] leading-relaxed"
                   placeholder="Caption จะปรากฏที่นี่หลังจาก Generate..." value={fbCaption} onChange={(e) => setFbCaption(e.target.value)} />
+              </div>
+
+              {/* STEP 3: Footer */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-[9px] font-black uppercase tracking-widest" style={{ color: "#00B2FF" }}>Step 3 — ข้อความท้ายโพสต์</label>
+                  <button onClick={() => { localStorage.setItem("fb_footer", fbFooter); setFooterSaved(true); setTimeout(() => setFooterSaved(false), 2000); }}
+                    className="text-[8px] font-black uppercase tracking-widest px-3 py-1 rounded-lg transition-all"
+                    style={{ backgroundColor: footerSaved ? "#42B72A20" : "#00B2FF15", color: footerSaved ? "#42B72A" : "#00B2FF" }}>
+                    {footerSaved ? "✓ Saved!" : "💾 Save Default"}
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {[{ label: "📌 Auto Fill", text: `📌 Kudos ดัดดิจิตอล "เพราะผมสวยเป็นเรื่องของมืออาชีพ"\n🔹️ สาขา ราชพฤกษ์      : 064-984-5587\n🔹️ สาขา คริสตัลปาร์ค  : 082-918-6859\n🔹️ สาขา นวมินทร์        : 097-157-6242\n📌 ติดต่อผ่าน LINE : @kudosbytarakorn` }]
+                    .map((p) => (
+                      <button key={p.label} onClick={() => setFbFooter(p.text)}
+                        className="text-[8px] font-black uppercase tracking-widest px-3 py-1 rounded-lg transition-all"
+                        style={{ backgroundColor: "#00B2FF15", color: "#00B2FF", border: "1px solid #00B2FF30" }}>{p.label}</button>
+                    ))}
+                </div>
+                <textarea className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-slate-700 focus:outline-none resize-none min-h-[90px] leading-relaxed"
+                  placeholder="เบอร์โทร, Line, ที่อยู่..." value={fbFooter} onChange={(e) => setFbFooter(e.target.value)} />
               </div>
 
               {/* STEP 4: Hashtag */}
