@@ -775,7 +775,7 @@ export default function Home() {
         {/* TITLE */}
         <div className="mb-8">
           <h1 className="text-7xl md:text-9xl font-black tracking-tighter text-white leading-none">
-            {activeSystem === "gamedev" ? "Studio" : "Social"}
+            {activeSystem === "gamedev" ? "Studio" : "Xeno AI"}
             <span style={{ color: theme.accent }}>.</span>
           </h1>
           <p className="text-slate-600 text-xs tracking-[0.4em] uppercase mt-3">
@@ -860,8 +860,8 @@ export default function Home() {
               </div>
             </section>
           ))
-        ) : (
-          /* Facebook: Toggle Departments */
+        ) : authUser?.role === "admin" ? (
+          /* Facebook: Toggle Departments (admin only) */
           <div className="mb-8">
             <p className="text-[8px] uppercase tracking-[0.4em] text-slate-700 mb-3">Agents</p>
             <div className="flex flex-wrap gap-2 mb-3">
@@ -918,7 +918,7 @@ export default function Home() {
               </div>
             ))}
           </div>
-        )}
+        ) : null}
 
         {/* COMMAND CONSOLE */}
         <div id="console" className="grid lg:grid-cols-3 gap-5 mt-10"
