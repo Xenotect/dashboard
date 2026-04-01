@@ -1123,8 +1123,8 @@ export default function Home() {
             const hasCaption = fbCaption.length > 0;
             const steps = [
               { n: 1, label: "รูปภาพ", done: hasImage },
-              { n: 2, label: "Generate", done: hasCaption },
-              { n: 3, label: "Footer", done: hasCaption },
+              { n: 2, label: "Footer", done: hasCaption },
+              { n: 3, label: "Generate", done: hasCaption },
               { n: 4, label: "Hashtag", done: hasCaption },
               { n: 5, label: "Post", done: false },
             ];
@@ -1274,7 +1274,7 @@ export default function Home() {
               {/* STEP 3: Footer */}
               <div>
                 <div className="flex items-center justify-between mb-2">
-                  <label className="text-[9px] font-black uppercase tracking-widest" style={{ color: "#00B2FF" }}>Step 3 — ข้อความท้ายโพสต์</label>
+                  <label className="text-[9px] font-black uppercase tracking-widest" style={{ color: "#00B2FF" }}>Step 2 — ข้อความท้ายโพสต์</label>
                   <button onClick={() => { localStorage.setItem("fb_footer", fbFooter); setFooterSaved(true); setTimeout(() => setFooterSaved(false), 2000); }}
                     className="text-[8px] font-black uppercase tracking-widest px-3 py-1 rounded-lg transition-all"
                     style={{ backgroundColor: footerSaved ? "#42B72A20" : "#00B2FF15", color: footerSaved ? "#42B72A" : "#00B2FF" }}>
@@ -1300,7 +1300,7 @@ export default function Home() {
               {/* STEP 2: Generate Caption */}
               <div>
                 <label className="text-[9px] font-black uppercase tracking-widest mb-2 block" style={{ color: "#1877F2" }}>
-                  Step 2 — Generate Caption
+                  Step 3 — Generate Caption
                 </label>
                 <div className="flex gap-2 mb-4">
                   <input type="text"
