@@ -1251,19 +1251,34 @@ export default function Home() {
                 {driveLoading && <p className="text-[9px] text-slate-600 italic mt-2">กำลังโหลด...</p>}
                 {driveImages.length > 0 && (
                   <div className="grid grid-cols-4 gap-2 mt-2">
-                    {driveImages.map((img) => (
-                      <button key={img.id} onClick={() => setSelectedImageIds((prev) => prev.includes(img.id) ? prev.filter((id) => id !== img.id) : [...prev, img.id])}
-                        className="relative rounded-xl overflow-hidden aspect-square border-2 transition-all"
-                        style={{ borderColor: selectedImageIds.includes(img.id) ? "#1877F2" : "transparent", boxShadow: selectedImageIds.includes(img.id) ? "0 0 12px #1877F255" : "none" }}>
-                        <img src={img.previewUrl} alt={img.name} className="w-full h-full object-cover"
-                          onError={(e) => { e.currentTarget.style.display = "none"; e.currentTarget.parentElement!.style.backgroundColor = "#1e293b"; }} />
-                        {selectedImageIds.includes(img.id) && (
-                          <div className="absolute inset-0 flex items-center justify-center" style={{ backgroundColor: "#1877F240" }}>
-                            <span className="text-white text-xl font-black">{selectedImageIds.indexOf(img.id) + 1}</span>
-                          </div>
-                        )}
-                      </button>
-                    ))}
+                    {driveImages.map((img) => {
+                      const isUsed = usedImages.some((u) => u.id === img.id);
+                      const usedEntry = isUsed ? usedImages.find((u) => u.id === img.id) : null;
+                      const isSelected = selectedImageIds.includes(img.id);
+                      return (
+                        <button key={img.id} onClick={() => setSelectedImageIds((prev) => prev.includes(img.id) ? prev.filter((id) => id !== img.id) : [...prev, img.id])}
+                          className="relative rounded-xl overflow-hidden aspect-square border-2 transition-all"
+                          style={{ borderColor: isSelected ? "#1877F2" : isUsed ? "#f59e0b60" : "transparent", boxShadow: isSelected ? "0 0 12px #1877F255" : "none" }}>
+                          <img src={img.previewUrl} alt={img.name} className={`w-full h-full object-cover ${isUsed && !isSelected ? "opacity-50" : ""}`}
+                            onError={(e) => { e.currentTarget.style.display = "none"; e.currentTarget.parentElement!.style.backgroundColor = "#1e293b"; }} />
+                          {/* Used badge */}
+                          {isUsed && !isSelected && (
+                            <div className="absolute inset-0 flex flex-col items-center justify-center gap-1" style={{ backgroundColor: "#00000060" }}>
+                              <span className="text-lg">✅</span>
+                              <span className="text-[7px] font-black text-amber-400 uppercase tracking-widest text-center px-1 leading-tight">
+                                {usedEntry?.date ? usedEntry.date.slice(0, 10) : "โพสต์แล้ว"}
+                              </span>
+                            </div>
+                          )}
+                          {/* Selected badge */}
+                          {isSelected && (
+                            <div className="absolute inset-0 flex items-center justify-center" style={{ backgroundColor: "#1877F240" }}>
+                              <span className="text-white text-xl font-black">{selectedImageIds.indexOf(img.id) + 1}</span>
+                            </div>
+                          )}
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
                 {driveImages.length === 0 && !driveLoading && activeFolderIdx !== null && (
