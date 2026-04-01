@@ -605,6 +605,8 @@ export default function Home() {
         console.log("Drive response:", data);
         setDriveImages(data.files || []);
         setDriveFolders(data.folders || []);
+        // auto-load used images เพื่อให้ overlay ทำงานได้ทันที
+        authFetch(`${API}/fb-used-images`).then((r) => r.json()).then(setUsedImages).catch(() => {});
       }
     } catch {
       setFbPostResult({ success: false, message: "❌ ไม่สามารถติดต่อ Backend ได้" });
@@ -657,10 +659,12 @@ export default function Home() {
         setFbPostResult({ success: data.success, message: data.message || data.error });
       } else {
         // --- Drive flow (เดิม) ---
+        const selectedNames = selectedImageIds.map((id) => driveImages.find((i) => i.id === id)?.name ?? "");
         const body: Record<string, string | null> = {
           caption: fbCaption,
           footer: fullFooter,
           file_ids: JSON.stringify(selectedImageIds),
+          file_names: JSON.stringify(selectedNames),
         };
         if (scheduleEnabled && scheduledTime) body.scheduled_time = scheduledTime;
         const res = await authFetch(`${API}/fb-post`, {
@@ -670,6 +674,10 @@ export default function Home() {
         });
         const data = await res.json();
         setFbPostResult({ success: data.success, message: data.message || data.error });
+        if (data.success) {
+          // refresh used images overlay
+          authFetch(`${API}/fb-used-images`).then((r) => r.json()).then(setUsedImages).catch(() => {});
+        }
       }
     } catch {
       setFbPostResult({ success: false, message: "❌ ไม่สามารถติดต่อ Backend ได้" });
@@ -1256,7 +1264,13 @@ export default function Home() {
                       const usedEntry = isUsed ? usedImages.find((u) => u.id === img.id) : null;
                       const isSelected = selectedImageIds.includes(img.id);
                       return (
-                        <button key={img.id} onClick={() => setSelectedImageIds((prev) => prev.includes(img.id) ? prev.filter((id) => id !== img.id) : [...prev, img.id])}
+                        <button key={img.id} onClick={() => {
+                            if (isUsed && !isSelected) {
+                              const usedDate = usedEntry?.date || "ไม่ทราบวันที่";
+                              if (!window.confirm(`⚠️ รูปนี้เคยโพสต์ไปแล้ว (${usedDate})\nต้องการเลือกใช้ซ้ำหรือไม่?`)) return;
+                            }
+                            setSelectedImageIds((prev) => prev.includes(img.id) ? prev.filter((id) => id !== img.id) : [...prev, img.id]);
+                          }}
                           className="relative rounded-xl overflow-hidden aspect-square border-2 transition-all"
                           style={{ borderColor: isSelected ? "#1877F2" : isUsed ? "#f59e0b60" : "transparent", boxShadow: isSelected ? "0 0 12px #1877F255" : "none" }}>
                           <img src={img.previewUrl} alt={img.name} className={`w-full h-full object-cover ${isUsed && !isSelected ? "opacity-50" : ""}`}

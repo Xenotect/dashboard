@@ -848,17 +848,9 @@ async def fb_smart_post(data: dict, _user: dict = Depends(get_current_user)):
     selected_id = result_data.get("selected_id", "")
     selected_img = next((f for f in valid_images if f["id"] == selected_id), valid_images[0])
 
-    # 6. บันทึก id + name + date
-    used_log.append({
-        "id": selected_img["id"],
-        "name": selected_img.get("name", ""),
-        "date": datetime.now().strftime("%d %b %Y %H:%M"),
-    })
-    with open(used_file, "w", encoding="utf-8") as f:
-        json.dump(used_log, f, indent=2, ensure_ascii=False)
-
     return {
         "selected_id": selected_img["id"],
+        "selected_name": selected_img.get("name", ""),
         "preview_url": f"https://drive.google.com/thumbnail?id={selected_img['id']}&sz=w400",
         "caption": clean_caption(result_data.get("caption", "")),
         "reason": result_data.get("reason", ""),
@@ -1024,6 +1016,32 @@ async def fb_post(data: dict, _user: dict = Depends(get_current_user)):
 
     result = resp.json()
     if "id" in result:
+        # บันทึก Drive image IDs ที่ใช้จริงๆ ตอนโพสต์/ตั้งเวลาสำเร็จ
+        if file_ids:
+            import json as _json2
+            file_names_raw = data.get("file_names")
+            file_names = _json2.loads(file_names_raw) if file_names_raw else []
+            used_log = []
+            if os.path.exists(USED_IMAGES_FILE):
+                try:
+                    with open(USED_IMAGES_FILE, "r", encoding="utf-8") as f:
+                        used_log = json.load(f)
+                    if used_log and isinstance(used_log[0], str):
+                        used_log = [{"id": i, "name": "", "date": ""} for i in used_log]
+                except (json.JSONDecodeError, IOError):
+                    used_log = []
+            now_str = datetime.now().strftime("%d %b %Y %H:%M")
+            existing_ids = {e["id"] for e in used_log}
+            for i, fid in enumerate(file_ids):
+                if fid not in existing_ids:
+                    used_log.append({
+                        "id": fid,
+                        "name": file_names[i] if i < len(file_names) else "",
+                        "date": now_str,
+                    })
+            with open(USED_IMAGES_FILE, "w", encoding="utf-8") as f:
+                json.dump(used_log, f, indent=2, ensure_ascii=False)
+
         if scheduled_unix:
             dt_str = datetime.fromisoformat(scheduled_time).strftime("%d/%m/%Y %H:%M")
             return {"success": True, "post_id": result["id"], "message": f"ตั้งเวลาโพสต์สำเร็จ! จะโพสต์วันที่ {dt_str}"}
