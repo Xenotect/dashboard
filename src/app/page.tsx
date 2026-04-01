@@ -393,10 +393,10 @@ export default function Home() {
   const [footerSaved, setFooterSaved] = useState(false);
 
   const categoryHashtags: Record<string, string> = {
-    "ทำสีผม": "#ทำสีผม #สีผม #ย้อมผม #colorhair #ร้านทำผม #KUDOS",
-    "ตัดผม": "#ตัดผม #ทรงผม #hairstyle #ร้านตัดผม #KUDOS",
-    "ยืดผม": "#ยืดผม #ผมตรง #straighthair #ร้านทำผม #KUDOS",
-    "ทรงผม": "#ทรงผม #hairstyle #ผมสวย #ร้านทำผม #KUDOS",
+    "ทำสีผม": "#ร้านทำผมคูดอส #ร้านทำผม #KUDOS",
+    "ดัดผม": "#ร้านทำผมคูดอส #ร้านทำผม #KUDOS",
+    "ยืดผม": "#ร้านทำผมคูดอส #ร้านทำผม #KUDOS",
+    "ทรงผม": "#ร้านทำผมคูดอส #ร้านทำผม #KUDOS",
   };
   const [showFolderConfig, setShowFolderConfig] = useState(false);
   const [folderCategories, setFolderCategories] = useState([
@@ -1226,6 +1226,35 @@ export default function Home() {
                   <label className="text-[9px] font-black uppercase tracking-widest mb-1.5 block" style={{ color: "#a78bfa" }}>
                     # Hashtags — auto จาก category
                   </label>
+                  <div className="flex flex-wrap gap-1.5 mb-2">
+                    {[
+                      { label: "ราชพฤกษ์", tag: "#ราชพฤกษ์" },
+                      { label: "คริสตัลปาร์ค", tag: "#คริสตัลปาร์ค" },
+                      { label: "นวมินทร์", tag: "#นวมินทร์" },
+                    ].map((branch) => {
+                      const active = fbHashtags.includes(branch.tag);
+                      return (
+                        <button
+                          key={branch.label}
+                          onClick={() => {
+                            if (active) {
+                              setFbHashtags(fbHashtags.replace(branch.tag, "").replace(/\s+/g, " ").trim());
+                            } else {
+                              setFbHashtags((fbHashtags + " " + branch.tag).trim());
+                            }
+                          }}
+                          className="text-[8px] font-black uppercase tracking-widest px-3 py-1 rounded-lg transition-all"
+                          style={{
+                            backgroundColor: active ? "#a78bfa30" : "#ffffff08",
+                            color: active ? "#a78bfa" : "#475569",
+                            border: `1px solid ${active ? "#a78bfa50" : "#ffffff10"}`,
+                          }}
+                        >
+                          {active ? "✓ " : ""}{branch.label}
+                        </button>
+                      );
+                    })}
+                  </div>
                   <textarea
                     className="w-full bg-white/[0.04] border border-white/10 rounded-xl px-4 py-3 text-sm placeholder:text-slate-700 focus:outline-none resize-none min-h-[50px] leading-relaxed"
                     style={{ color: "#a78bfa" }}
