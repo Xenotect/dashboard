@@ -425,7 +425,10 @@ export default function Home() {
       fetch(`${API}/me`, { headers: { Authorization: `Bearer ${savedToken}` } })
         .then((r) => r.json())
         .then((data) => {
-          if (data.username) setAuthUser({ username: data.username, role: data.role, token: savedToken });
+          if (data.username) {
+            setAuthUser({ username: data.username, role: data.role, token: savedToken });
+            if (data.role !== "admin") setActiveSystem("facebook");
+          }
         })
         .catch(() => {})
         .finally(() => setAuthChecked(true));
@@ -530,7 +533,7 @@ export default function Home() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          command: `Tone: ${fbTone}\nเรื่อง: ${fbPrompt}`,
+          command: `Tone: ${fbTone}\nเรื่อง: ${fbPrompt}\n\nกรุณาเขียนเฉพาะ caption เนื้อหาหลักเท่านั้น ห้ามใส่ hashtag (#) และห้ามใส่ข้อความท้าย เช่น เบอร์ติดต่อ, Line ID, ที่อยู่ หรือข้อมูลติดต่อใดๆ ทั้งสิ้น`,
           agent: "FB Writer",
         }),
       });
