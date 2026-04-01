@@ -393,15 +393,15 @@ export default function Home() {
   const [footerSaved, setFooterSaved] = useState(false);
 
   const categoryHashtags: Record<string, string> = {
-    "ทำสีผม": "#ร้านทำผมคูดอส #ร้านทำผม #KUDOS",
-    "ดัดผม": "#ร้านทำผมคูดอส #ร้านทำผม #KUDOS",
-    "ยืดผม": "#ร้านทำผมคูดอส #ร้านทำผม #KUDOS",
-    "ทรงผม": "#ร้านทำผมคูดอส #ร้านทำผม #KUDOS",
+    "ทำสีผม": "#ร้านทำผมคูดอส #ร้านทำผม #KUDOS #ทำสีผม #haircoloring",
+    "ดัดผม": "#ร้านทำผมคูดอส #ร้านทำผม #KUDOS #ดัดดิจิตอล #DigitalPerm #ดัดวอลลุ่ม #ยืดโคนดัดปลาย",
+    "ยืดผม": "#ร้านทำผมคูดอส #ร้านทำผม #KUDOS #ยืดผม #ยืดผมถาวร #ยืดวอลลุ่ม #ยืดโคนดัดปลาย",
+    "ทรงผม": "#ร้านทำผมคูดอส #ร้านทำผม #KUDOS #LayerCut #ร้านตัดผมสวยๆ",
   };
   const [showFolderConfig, setShowFolderConfig] = useState(false);
   const [folderCategories, setFolderCategories] = useState([
     { name: "ทำสีผม", emoji: "🎨", url: process.env.NEXT_PUBLIC_FOLDER_TAMSIPOM || "" },
-    { name: "ตัดผม", emoji: "💫", url: process.env.NEXT_PUBLIC_FOLDER_TATPOM || "" },
+    { name: "ดัดผม", emoji: "💫", url: process.env.NEXT_PUBLIC_FOLDER_TATPOM || "" },
     { name: "ยืดผม", emoji: "✨", url: process.env.NEXT_PUBLIC_FOLDER_YEUTPOM || "" },
     { name: "ทรงผม", emoji: "✂️", url: process.env.NEXT_PUBLIC_FOLDER_SONGPOM || "" },
   ]);
@@ -409,6 +409,8 @@ export default function Home() {
   const [driveImages, setDriveImages] = useState<{ id: string; name: string; previewUrl: string }[]>([]);
   const [driveLoading, setDriveLoading] = useState(false);
   const [selectedImageIds, setSelectedImageIds] = useState<string[]>([]);
+  const [localFiles, setLocalFiles] = useState<File[]>([]);
+  const [localPreviews, setLocalPreviews] = useState<string[]>([]);
   const [fbPostLoading, setFbPostLoading] = useState(false);
   const [fbPostResult, setFbPostResult] = useState<{ success: boolean; message: string } | null>(null);
   const [fbSmartLoading, setFbSmartLoading] = useState(false);
@@ -642,21 +644,33 @@ export default function Home() {
     setFbPostResult(null);
     try {
       const fullFooter = [fbFooter, fbHashtags].filter(Boolean).join("\n\n");
-      const body: Record<string, string | null> = {
-        caption: fbCaption,
-        footer: fullFooter,
-        file_ids: JSON.stringify(selectedImageIds),
-      };
-      if (scheduleEnabled && scheduledTime) {
-        body.scheduled_time = scheduledTime;
+
+      if (localFiles.length > 0) {
+        // --- Local upload flow ---
+        const formData = new FormData();
+        formData.append("caption", fbCaption);
+        formData.append("footer", fullFooter);
+        if (scheduleEnabled && scheduledTime) formData.append("scheduled_time", scheduledTime);
+        localFiles.forEach((f) => formData.append("files", f));
+        const res = await authFetch(`${API}/fb-post-local`, { method: "POST", body: formData });
+        const data = await res.json();
+        setFbPostResult({ success: data.success, message: data.message || data.error });
+      } else {
+        // --- Drive flow (เดิม) ---
+        const body: Record<string, string | null> = {
+          caption: fbCaption,
+          footer: fullFooter,
+          file_ids: JSON.stringify(selectedImageIds),
+        };
+        if (scheduleEnabled && scheduledTime) body.scheduled_time = scheduledTime;
+        const res = await authFetch(`${API}/fb-post`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json();
+        setFbPostResult({ success: data.success, message: data.message || data.error });
       }
-      const res = await authFetch(`${API}/fb-post`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      const data = await res.json();
-      setFbPostResult({ success: data.success, message: data.message || data.error });
     } catch {
       setFbPostResult({ success: false, message: "❌ ไม่สามารถติดต่อ Backend ได้" });
     }
@@ -1228,9 +1242,9 @@ export default function Home() {
                   </label>
                   <div className="flex flex-wrap gap-1.5 mb-2">
                     {[
-                      { label: "ราชพฤกษ์", tag: "#ราชพฤกษ์" },
-                      { label: "คริสตัลปาร์ค", tag: "#คริสตัลปาร์ค" },
-                      { label: "นวมินทร์", tag: "#นวมินทร์" },
+                      { label: "ราชพฤกษ์", tag: "#ร้านทำผมราชพฤกษ์" },
+                      { label: "คริสตัลปาร์ค", tag: "#ร้านทำผมคริสตัลปาร์ค" },
+                      { label: "นวมินทร์", tag: "#ร้านทำผมนวมินทร์" },
                     ].map((branch) => {
                       const active = fbHashtags.includes(branch.tag);
                       return (
@@ -1269,12 +1283,60 @@ export default function Home() {
             {/* RIGHT COLUMN */}
             <div className="space-y-6">
 
-              {/* STEP 4: Google Drive */}
+              {/* STEP 4: รูปภาพ */}
               <div>
                 <div className="flex items-center justify-between mb-3">
                   <label className="text-[9px] font-black uppercase tracking-widest" style={{ color: "#42B72A" }}>
-                    Step 4 — รูปจาก Google Drive
+                    Step 4 — รูปภาพ
                   </label>
+                </div>
+
+                {/* LOCAL UPLOAD */}
+                <div className="mb-4 p-4 rounded-2xl border border-white/5 bg-white/[0.02]">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-[9px] font-black uppercase tracking-widest text-slate-400">📱 อัพโหลดจากเครื่อง</span>
+                    {localFiles.length > 0 && (
+                      <button
+                        onClick={() => { setLocalFiles([]); setLocalPreviews([]); }}
+                        className="text-[8px] text-red-400 uppercase tracking-widest font-black"
+                      >
+                        ✕ ล้าง
+                      </button>
+                    )}
+                  </div>
+                  <label className="flex items-center justify-center gap-2 w-full py-3 rounded-xl cursor-pointer transition-all"
+                    style={{ background: "#42B72A15", border: "1px dashed #42B72A40", color: "#42B72A" }}
+                  >
+                    <span className="text-[9px] font-black uppercase tracking-widest">
+                      {localFiles.length > 0 ? `✓ เลือกแล้ว ${localFiles.length} รูป — คลิกเพื่อเปลี่ยน` : "📂 เลือกรูปจากเครื่อง / มือถือ"}
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      className="hidden"
+                      onChange={(e) => {
+                        const files = Array.from(e.target.files || []);
+                        setLocalFiles(files);
+                        setLocalPreviews(files.map((f) => URL.createObjectURL(f)));
+                        setSelectedImageIds([]);
+                      }}
+                    />
+                  </label>
+                  {localPreviews.length > 0 && (
+                    <div className="flex gap-2 mt-2 flex-wrap">
+                      {localPreviews.map((src, i) => (
+                        <img key={i} src={src} alt="" className="w-16 h-16 object-cover rounded-lg border border-white/10" />
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* DIVIDER */}
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="h-px flex-1 bg-white/5" />
+                  <span className="text-[8px] text-slate-700 uppercase tracking-widest">หรือใช้ Google Drive</span>
+                  <div className="h-px flex-1 bg-white/5" />
                 </div>
 
                 {/* URL Config Panel */}

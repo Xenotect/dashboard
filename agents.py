@@ -2,7 +2,8 @@ import os
 import re
 import json
 import requests
-from fastapi import FastAPI, HTTPException, Depends, Request
+from fastapi import FastAPI, HTTPException, Depends, Request, UploadFile, File, Form
+from typing import List
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from crewai import Agent, Task, Crew, Process, LLM
@@ -1077,6 +1078,76 @@ async def marketing_stats(_user: dict = Depends(get_current_user)):
         "insights": insights,
         "posts": posts_resp.get("data", [])
     }
+
+
+# --- 📱 Facebook: โพสต์จากรูปในเครื่อง ---
+@app.post("/fb-post-local")
+async def fb_post_local(
+    caption: str = Form(""),
+    footer: str = Form(""),
+    scheduled_time: str = Form(""),
+    files: List[UploadFile] = File(...),
+    _user: dict = Depends(get_current_user),
+):
+    from datetime import timezone
+    page_id = os.environ.get("FB_PAGE_ID")
+    access_token = os.environ.get("FB_PAGE_ACCESS_TOKEN")
+    if not page_id or not access_token:
+        return {"success": False, "error": "ไม่พบ FB_PAGE_ID หรือ FB_PAGE_ACCESS_TOKEN ใน .env"}
+
+    full_message = f"{caption}\n\n{footer}".strip() if footer else caption
+
+    # ตั้งเวลา
+    scheduled_unix = None
+    if scheduled_time:
+        try:
+            dt = datetime.fromisoformat(scheduled_time)
+            if dt.tzinfo is None:
+                dt = dt.astimezone(timezone.utc)
+            scheduled_unix = int(dt.timestamp())
+            min_time = int(datetime.now(timezone.utc).timestamp()) + 600
+            if scheduled_unix < min_time:
+                return {"success": False, "error": "เวลาที่ตั้งต้องห่างจากปัจจุบันอย่างน้อย 10 นาที"}
+        except ValueError:
+            return {"success": False, "error": "รูปแบบเวลาไม่ถูกต้อง"}
+
+    if not files or len(files) == 0:
+        return {"success": False, "error": "ไม่พบไฟล์รูปภาพ"}
+
+    # อัพโหลดรูปแบบ unpublished
+    photo_ids = []
+    for f in files:
+        content = await f.read()
+        mime = f.content_type or "image/jpeg"
+        upload_resp = requests.post(
+            f"https://graph.facebook.com/v19.0/{page_id}/photos",
+            data={"published": "false", "access_token": access_token},
+            files={"source": (f.filename or "image.jpg", content, mime)},
+        )
+        upload_data = upload_resp.json()
+        if "id" not in upload_data:
+            return {"success": False, "error": upload_data.get("error", {}).get("message", "อัปโหลดรูปไม่สำเร็จ")}
+        photo_ids.append({"media_fbid": upload_data["id"]})
+
+    import json as _json
+    post_data = {
+        "message": full_message,
+        "attached_media": _json.dumps(photo_ids),
+        "access_token": access_token,
+    }
+    if scheduled_unix:
+        post_data["published"] = "false"
+        post_data["scheduled_publish_time"] = str(scheduled_unix)
+
+    resp = requests.post(f"https://graph.facebook.com/v19.0/{page_id}/feed", data=post_data)
+    result = resp.json()
+    if "id" in result:
+        if scheduled_unix:
+            dt_str = datetime.fromisoformat(scheduled_time).strftime("%d/%m/%Y %H:%M")
+            return {"success": True, "post_id": result["id"], "message": f"ตั้งเวลาโพสต์สำเร็จ! จะโพสต์วันที่ {dt_str}"}
+        return {"success": True, "post_id": result["id"], "message": "โพสต์สำเร็จแล้ว!"}
+    fb_error = result.get("error", {})
+    return {"success": False, "error": f"Facebook: {fb_error.get('message', str(result))}"}
 
 
 # --- 🔐 Auth Endpoints ---
