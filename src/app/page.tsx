@@ -1470,9 +1470,22 @@ export default function Home() {
                   {[...usedImages].reverse().map((img, i) => (
                     <div key={img.id} className="flex items-center gap-4 px-4 py-3 rounded-xl bg-white/[0.02] border border-white/5">
                       <img
-                        src={`https://drive.google.com/thumbnail?id=${img.id}&sz=w80`}
+                        src={`https://lh3.googleusercontent.com/d/${img.id}=w80`}
                         alt={img.name}
-                        className="w-12 h-12 rounded-lg object-cover shrink-0"
+                        className="w-12 h-12 rounded-lg object-cover shrink-0 bg-white/5"
+                        onError={(e) => {
+                          const el = e.currentTarget;
+                          if (!el.dataset.fallback) {
+                            el.dataset.fallback = "1";
+                            el.src = `https://drive.google.com/thumbnail?id=${img.id}&sz=w80`;
+                          } else {
+                            el.style.display = "none";
+                            const placeholder = document.createElement("div");
+                            placeholder.className = "w-12 h-12 rounded-lg shrink-0 flex items-center justify-center text-xl bg-white/5";
+                            placeholder.textContent = "🖼️";
+                            el.parentElement?.insertBefore(placeholder, el);
+                          }
+                        }}
                       />
                       <div className="flex-1 min-w-0">
                         <p className="text-xs text-white font-bold truncate">{img.name || `รูปที่ ${usedImages.length - i}`}</p>
