@@ -747,6 +747,19 @@ async def fb_smart_post(data: dict, _user: dict = Depends(get_current_user)):
 
     folder_link = data.get("folder_link", "").strip()
     prompt = data.get("prompt", "").strip() or "เลือกรูปที่สวยและเหมาะกับการโพสต์ Facebook"
+    tone = data.get("tone", "Lifestyle").strip()
+
+    tone_instructions = {
+        "FOMO":         "เขียนในสไตล์ FOMO — ให้คนรู้สึกกลัวพลาด รีบตัดสินใจ เช่น คิวเต็มเร็ว โอกาสจำกัด คนอื่นได้ไปแล้ว",
+        "Emotional":    "เขียนในสไตล์ Emotional — แตะความรู้สึก ทำให้คนรู้สึกอิน ประทับใจ หรือได้แรงบันดาลใจ",
+        "Direct Sales": "เขียนในสไตล์ Direct Sales — ตรงไปตรงมา บอกราคา/โปร/ของที่ได้ชัดเจน",
+        "Hard Sell":    "เขียนในสไตล์ Hard Sell — กระตุ้นให้ตัดสินใจทันที ใช้คำที่มีพลัง เร่งด่วน",
+        "Educational":  "เขียนในสไตล์ Educational — ให้ความรู้เกี่ยวกับบริการหรือการดูแลผมที่เห็นในรูป เช่น วิธีดูแล ประโยชน์ ความแตกต่างของเทคนิค หรือสิ่งที่คนมักเข้าใจผิด ให้ข้อมูลที่เป็นประโยชน์จริงๆ ไม่ใช่แค่บรรยายความรู้สึก",
+        "Trust":        "เขียนในสไตล์ Trust — สร้างความน่าเชื่อถือ แสดงความเชี่ยวชาญ ทำให้คนมั่นใจ",
+        "Social Proof": "เขียนในสไตล์ Social Proof — อ้างอิงลูกค้าจริง รีวิว ผลลัพธ์ที่เกิดขึ้นจริง",
+        "Lifestyle":    "เขียนในสไตล์ Lifestyle — บรรยายความสวยงาม ความรู้สึกดี เข้ากับชีวิตประจำวัน",
+    }
+    tone_guide = tone_instructions.get(tone, tone_instructions["Lifestyle"])
 
     # 1. Extract folder ID
     match = re.search(r'/folders/([a-zA-Z0-9_-]+)', folder_link)
@@ -819,11 +832,15 @@ async def fb_smart_post(data: dict, _user: dict = Depends(get_current_user)):
         "type": "text",
         "text": f"""จากรูปทั้งหมดนี้ กรุณา:
 1. เลือก 1 รูปที่สวยและเหมาะสมที่สุดสำหรับโพสต์ Facebook ของร้านทำผม
-2. เขียน caption ภาษาไทยที่น่าสนใจ กระชับ มี emoji เหมาะสม
+2. เขียน caption ภาษาไทย
 
-คำสั่งเพิ่มเติม: {prompt}
+สไตล์ที่ต้องการ: {tone_guide}
+{f"คำสั่งเพิ่มเติม: {prompt}" if prompt else ""}
 
 กฎสำคัญสำหรับ caption:
+- ใช้ภาษาไทยง่ายๆ เป็นธรรมชาติ ไม่เป็นทางการ
+- ความยาว 4-6 บรรทัด ตามความเหมาะสมของเนื้อหา
+- ใส่ emoji 1-3 อัน ตามความเหมาะสม
 - ห้ามใส่ hashtag (#) ทุกกรณี
 - ห้ามใส่ข้อมูลติดต่อ เบอร์โทร Line ID ที่อยู่ หรือ CTA ชวนทัก
 - เขียนเฉพาะเนื้อหาหลักเท่านั้น
@@ -908,36 +925,43 @@ async def fb_drive_images(data: dict, _user: dict = Depends(get_current_user)):
     if not api_key or api_key == "ใส่ Google API Key ที่นี่":
         return {"error": "ไม่พบ GOOGLE_DRIVE_API_KEY ใน .env"}
 
+    page_token = data.get("page_token", "").strip()
+
     # ดึงรูป
     image_params = {
         "q": f"'{folder_id}' in parents and mimeType contains 'image/' and trashed = false",
-        "fields": "files(id,name,mimeType)",
-        "pageSize": 50,
+        "fields": "nextPageToken,files(id,name,mimeType)",
+        "pageSize": 40,
         "key": api_key,
     }
+    if page_token:
+        image_params["pageToken"] = page_token
     image_resp = requests.get("https://www.googleapis.com/drive/v3/files", params=image_params)
     image_result = image_resp.json()
     if "error" in image_result:
         return {"error": image_result["error"].get("message", "ดึงรูปไม่สำเร็จ")}
 
     files = image_result.get("files", [])
+    next_page_token = image_result.get("nextPageToken", "")
     for f in files:
         f["previewUrl"] = f"https://drive.google.com/thumbnail?id={f['id']}&sz=w400"
 
-    # ดึง subfolder
-    folder_params = {
-        "q": f"'{folder_id}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false",
-        "fields": "files(id,name)",
-        "pageSize": 50,
-        "key": api_key,
-    }
-    folder_resp = requests.get("https://www.googleapis.com/drive/v3/files", params=folder_params)
-    folder_result = folder_resp.json()
-    folders = folder_result.get("files", [])
-    for folder in folders:
-        folder["folderLink"] = f"https://drive.google.com/drive/folders/{folder['id']}"
+    # ดึง subfolder (เฉพาะหน้าแรกเท่านั้น)
+    folders = []
+    if not page_token:
+        folder_params = {
+            "q": f"'{folder_id}' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false",
+            "fields": "files(id,name)",
+            "pageSize": 50,
+            "key": api_key,
+        }
+        folder_resp = requests.get("https://www.googleapis.com/drive/v3/files", params=folder_params)
+        folder_result = folder_resp.json()
+        folders = folder_result.get("files", [])
+        for folder in folders:
+            folder["folderLink"] = f"https://drive.google.com/drive/folders/{folder['id']}"
 
-    return {"files": files, "folders": folders}
+    return {"files": files, "folders": folders, "nextPageToken": next_page_token}
 
 
 # --- 📘 Facebook: โพสต์ขึ้น Page ---

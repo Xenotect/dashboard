@@ -425,6 +425,10 @@ export default function Home() {
   const [scheduledTime, setScheduledTime] = useState("");
   const [driveFolders, setDriveFolders] = useState<{ id: string; name: string; folderLink: string }[]>([]);
   const [currentFolderName, setCurrentFolderName] = useState("");
+  const [driveCurrentPage, setDriveCurrentPage] = useState(1);
+  const [driveNextToken, setDriveNextToken] = useState("");
+  const [driveCurrentToken, setDriveCurrentToken] = useState("");
+  const [drivePrevTokens, setDrivePrevTokens] = useState<string[]>([]);
 
   useEffect(() => {
     setMounted(true);
@@ -566,7 +570,7 @@ export default function Home() {
       const res = await authFetch(`${API}/fb-smart-post`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ folder_link: activeFolderUrl, prompt: fbPrompt }),
+        body: JSON.stringify({ folder_link: activeFolderUrl, prompt: fbPrompt, tone: fbTone }),
       });
       const data = await res.json();
       if (data.error) {
@@ -584,34 +588,62 @@ export default function Home() {
     setFbSmartLoading(false);
   };
 
-  // FB: Load images from Google Drive
-  const handleLoadDriveImages = async (overrideLink?: string, folderName?: string) => {
-    const link = overrideLink || activeFolderUrl;
-    if (!link) return;
+  // FB: Load images from Google Drive (internal — รับ pageToken โดยตรง)
+  const loadDriveImagesWithToken = async (link: string, pageToken: string) => {
     setDriveLoading(true);
     setDriveImages([]);
-    setDriveFolders([]);
     setSelectedImageIds([]);
-    setCurrentFolderName(folderName || "");
     try {
       const res = await authFetch(`${API}/fb-drive-images`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ folder_link: link }),
+        body: JSON.stringify({ folder_link: link, page_token: pageToken }),
       });
       const data = await res.json();
-      if (data.error) setFbPostResult({ success: false, message: data.error });
-      else {
-        console.log("Drive response:", data);
+      if (data.error) {
+        setFbPostResult({ success: false, message: data.error });
+      } else {
         setDriveImages(data.files || []);
-        setDriveFolders(data.folders || []);
-        // auto-load used images เพื่อให้ overlay ทำงานได้ทันที
+        if (!pageToken) setDriveFolders(data.folders || []);
+        setDriveNextToken(data.nextPageToken || "");
         authFetch(`${API}/fb-used-images`).then((r) => r.json()).then(setUsedImages).catch(() => {});
       }
     } catch {
       setFbPostResult({ success: false, message: "❌ ไม่สามารถติดต่อ Backend ได้" });
     }
     setDriveLoading(false);
+  };
+
+  const handleLoadDriveImages = async (overrideLink?: string, folderName?: string) => {
+    const link = overrideLink || activeFolderUrl;
+    if (!link) return;
+    setCurrentFolderName(folderName || "");
+    setDriveFolders([]);
+    setDriveCurrentPage(1);
+    setDriveCurrentToken("");
+    setDrivePrevTokens([]);
+    setDriveNextToken("");
+    await loadDriveImagesWithToken(link, "");
+  };
+
+  const handleDriveNextPage = async () => {
+    const link = activeFolderUrl;
+    if (!link || !driveNextToken) return;
+    setDrivePrevTokens((prev) => [...prev, driveCurrentToken]);
+    setDriveCurrentToken(driveNextToken);
+    setDriveCurrentPage((p) => p + 1);
+    await loadDriveImagesWithToken(link, driveNextToken);
+  };
+
+  const handleDrivePrevPage = async () => {
+    const link = activeFolderUrl;
+    if (!link || drivePrevTokens.length === 0) return;
+    const prevStack = [...drivePrevTokens];
+    const prevToken = prevStack.pop() || "";
+    setDrivePrevTokens(prevStack);
+    setDriveCurrentToken(prevToken);
+    setDriveCurrentPage((p) => p - 1);
+    await loadDriveImagesWithToken(link, prevToken);
   };
 
   // FB: โหลดประวัติรูปที่ใช้แล้ว
@@ -1293,6 +1325,25 @@ export default function Home() {
                         </button>
                       );
                     })}
+                  </div>
+                )}
+                {driveImages.length > 0 && (
+                  <div className="flex items-center justify-between mt-3">
+                    <button
+                      onClick={handleDrivePrevPage}
+                      disabled={driveCurrentPage <= 1 || driveLoading}
+                      className="text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-xl transition-all disabled:opacity-20"
+                      style={{ backgroundColor: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", color: "#94a3b8" }}>
+                      ← ก่อนหน้า
+                    </button>
+                    <span className="text-[9px] text-slate-500 font-black">หน้า {driveCurrentPage}</span>
+                    <button
+                      onClick={handleDriveNextPage}
+                      disabled={!driveNextToken || driveLoading}
+                      className="text-[9px] font-black uppercase tracking-widest px-3 py-1.5 rounded-xl transition-all disabled:opacity-20"
+                      style={{ backgroundColor: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)", color: "#94a3b8" }}>
+                      ถัดไป →
+                    </button>
                   </div>
                 )}
                 {driveImages.length === 0 && !driveLoading && activeFolderIdx !== null && (
