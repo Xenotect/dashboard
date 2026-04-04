@@ -988,9 +988,10 @@ async def fb_post(data: dict, _user: dict = Depends(get_current_user)):
     if scheduled_time:
         try:
             dt = datetime.fromisoformat(scheduled_time)
-            # ถ้าไม่มี timezone info ให้ถือว่าเป็น local time แล้วแปลงเป็น UTC
+            # ถ้าไม่มี timezone info ให้ถือว่าเป็นเวลาไทย (UTC+7)
             if dt.tzinfo is None:
-                dt = dt.astimezone(timezone.utc)
+                tz_bangkok = timezone(timedelta(hours=7))
+                dt = dt.replace(tzinfo=tz_bangkok)
             scheduled_unix = int(dt.timestamp())
             min_time = int(datetime.now(timezone.utc).timestamp()) + 600  # 10 นาทีขึ้นไป
             if scheduled_unix < min_time:
@@ -1144,8 +1145,10 @@ async def fb_post_local(
     if scheduled_time:
         try:
             dt = datetime.fromisoformat(scheduled_time)
+            # ถ้าไม่มี timezone info ให้ถือว่าเป็นเวลาไทย (UTC+7)
             if dt.tzinfo is None:
-                dt = dt.astimezone(timezone.utc)
+                tz_bangkok = timezone(timedelta(hours=7))
+                dt = dt.replace(tzinfo=tz_bangkok)
             scheduled_unix = int(dt.timestamp())
             min_time = int(datetime.now(timezone.utc).timestamp()) + 600
             if scheduled_unix < min_time:
