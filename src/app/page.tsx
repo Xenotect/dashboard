@@ -1480,10 +1480,13 @@ export default function Home() {
                     📅 {scheduleEnabled ? "ตั้งเวลาอยู่" : "ตั้งเวลาโพสต์"}
                   </button>
                   {scheduleEnabled && (
-                    <input type="datetime-local" value={scheduledTime} onChange={(e) => setScheduledTime(e.target.value)}
-                      min={new Date(Date.now() + 10 * 60 * 1000).toISOString().slice(0, 16)}
-                      className="text-xs px-3 py-2 rounded-lg outline-none"
-                      style={{ backgroundColor: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "#e2e8f0", colorScheme: "dark" }} />
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                      <input type="datetime-local" value={scheduledTime} onChange={(e) => setScheduledTime(e.target.value)}
+                        min={new Date(Date.now() + 10 * 60 * 1000).toISOString().slice(0, 16)}
+                        className="text-xs px-3 py-2 rounded-lg outline-none"
+                        style={{ backgroundColor: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.1)", color: "#e2e8f0", colorScheme: "dark" }} />
+                      <span style={{ fontSize: "18px" }}>🇹🇭</span>
+                    </div>
                   )}
                 </div>
                 <div className="flex items-center gap-4">
