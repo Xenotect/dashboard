@@ -965,18 +965,100 @@ async def fb_drive_images(data: dict, _user: dict = Depends(get_current_user)):
 
 
 # --- 📘 Facebook: โพสต์ขึ้น Page ---
+# --- 📸 Instagram Helper ---
+def _get_fb_photo_url(photo_id: str, access_token: str) -> str | None:
+    """ดึง CDN URL จาก FB photo ID (public, ไม่ต้องการ auth)"""
+    resp = requests.get(
+        f"https://graph.facebook.com/v19.0/{photo_id}",
+        params={"fields": "images", "access_token": access_token}
+    ).json()
+    images = resp.get("images", [])
+    if not images:
+        return None
+    # เอา resolution สูงสุด
+    return max(images, key=lambda x: x.get("width", 0)).get("source")
+
+def _post_to_instagram(ig_user_id: str, access_token: str, caption: str,
+                        photo_fb_ids: list[str], scheduled_unix: int | None = None) -> dict:
+    """โพสต์รูปไปยัง Instagram Business Account"""
+    if not ig_user_id:
+        return {"success": False, "error": "ไม่พบ IG_USER_ID ใน .env"}
+    if not photo_fb_ids:
+        return {"success": False, "error": "IG ต้องการรูปอย่างน้อย 1 รูป"}
+
+    # ดึง public URLs จาก FB
+    image_urls = []
+    for fid in photo_fb_ids:
+        url = _get_fb_photo_url(fid, access_token)
+        if not url:
+            return {"success": False, "error": f"ดึง URL รูปจาก Facebook ไม่ได้ (photo_id: {fid})"}
+        image_urls.append(url)
+
+    schedule_params = {}
+    if scheduled_unix:
+        schedule_params = {"scheduled_publish_time": str(scheduled_unix), "published": "false"}
+
+    if len(image_urls) == 1:
+        # Single image post
+        container_resp = requests.post(
+            f"https://graph.facebook.com/v19.0/{ig_user_id}/media",
+            params={"image_url": image_urls[0], "caption": caption, "access_token": access_token, **schedule_params}
+        ).json()
+        if "id" not in container_resp:
+            return {"success": False, "error": container_resp.get("error", {}).get("message", "สร้าง IG container ไม่สำเร็จ")}
+        container_id = container_resp["id"]
+    else:
+        # Carousel post
+        item_ids = []
+        for img_url in image_urls:
+            item_resp = requests.post(
+                f"https://graph.facebook.com/v19.0/{ig_user_id}/media",
+                params={"image_url": img_url, "is_carousel_item": "true", "access_token": access_token}
+            ).json()
+            if "id" not in item_resp:
+                return {"success": False, "error": item_resp.get("error", {}).get("message", "สร้าง IG carousel item ไม่สำเร็จ")}
+            item_ids.append(item_resp["id"])
+
+        carousel_resp = requests.post(
+            f"https://graph.facebook.com/v19.0/{ig_user_id}/media",
+            params={
+                "media_type": "CAROUSEL",
+                "children": ",".join(item_ids),
+                "caption": caption,
+                "access_token": access_token,
+                **schedule_params
+            }
+        ).json()
+        if "id" not in carousel_resp:
+            return {"success": False, "error": carousel_resp.get("error", {}).get("message", "สร้าง IG carousel ไม่สำเร็จ")}
+        container_id = carousel_resp["id"]
+
+    # Publish
+    if not scheduled_unix:
+        publish_resp = requests.post(
+            f"https://graph.facebook.com/v19.0/{ig_user_id}/media_publish",
+            params={"creation_id": container_id, "access_token": access_token}
+        ).json()
+        if "id" not in publish_resp:
+            return {"success": False, "error": publish_resp.get("error", {}).get("message", "publish IG ไม่สำเร็จ")}
+
+    return {"success": True, "ig_id": container_id}
+
+
 @app.post("/fb-post")
 async def fb_post(data: dict, _user: dict = Depends(get_current_user)):
     from datetime import timezone
     caption = data.get("caption", "").strip()
     footer = data.get("footer", "").strip()
+    post_to_ig = bool(data.get("post_to_ig", False))
     import json as _json
     file_ids_raw = data.get("file_ids")
     file_ids = _json.loads(file_ids_raw) if file_ids_raw else []
-    scheduled_time = data.get("scheduled_time", "").strip()  # ISO string e.g. "2026-03-31T15:00"
+    scheduled_time = data.get("scheduled_time", "").strip()
 
     page_id = os.environ.get("FB_PAGE_ID")
     access_token = os.environ.get("FB_PAGE_ACCESS_TOKEN")
+    ig_user_id = os.environ.get("IG_USER_ID", "")
 
     if not page_id or not access_token:
         return {"success": False, "error": "ไม่พบ FB_PAGE_ID หรือ FB_PAGE_ACCESS_TOKEN ใน .env"}
@@ -1067,10 +1149,17 @@ async def fb_post(data: dict, _user: dict = Depends(get_current_user)):
             with open(USED_IMAGES_FILE, "w", encoding="utf-8") as f:
                 json.dump(used_log, f, indent=2, ensure_ascii=False)
 
+        # โพสต์ IG ถ้าเปิดใช้
+        ig_msg = ""
+        if post_to_ig and file_ids and photo_ids:
+            raw_ids = [p["media_fbid"] for p in photo_ids]
+            ig_result = _post_to_instagram(ig_user_id, access_token, caption, raw_ids, scheduled_unix)
+            ig_msg = " + Instagram ✅" if ig_result["success"] else f" (IG ไม่สำเร็จ: {ig_result.get('error', '')})"
+
         if scheduled_unix:
             dt_str = datetime.fromisoformat(scheduled_time).strftime("%d/%m/%Y %H:%M")
-            return {"success": True, "post_id": result["id"], "message": f"ตั้งเวลาโพสต์สำเร็จ! จะโพสต์วันที่ {dt_str}"}
-        return {"success": True, "post_id": result["id"], "message": "โพสต์สำเร็จแล้ว!"}
+            return {"success": True, "post_id": result["id"], "message": f"ตั้งเวลาโพสต์สำเร็จ! จะโพสต์วันที่ {dt_str}{ig_msg}"}
+        return {"success": True, "post_id": result["id"], "message": f"โพสต์สำเร็จแล้ว!{ig_msg}"}
     fb_error = result.get("error", {})
     error_msg = fb_error.get("message") or fb_error.get("error_user_msg") or str(result)
     return {"success": False, "error": f"Facebook: {error_msg}"}
@@ -1123,18 +1212,138 @@ async def marketing_stats(_user: dict = Depends(get_current_user)):
     }
 
 
+# --- 🤖 Facebook: AI Insights Analysis (Admin Only) ---
+@app.get("/fb-insights-analysis")
+async def fb_insights_analysis(days: int = 7, user: dict = Depends(get_current_user)):
+    if user.get("role") != "admin":
+        raise HTTPException(status_code=403, detail="Admin only")
+
+    if days not in (7, 30, 90):
+        days = 7
+
+    page_id = os.environ.get("FB_PAGE_ID")
+    token = os.environ.get("FB_PAGE_ACCESS_TOKEN")
+    if not page_id or not token:
+        return {"error": "ไม่พบ FB_PAGE_ID หรือ FB_PAGE_ACCESS_TOKEN"}
+
+    from datetime import timezone as tz
+    now = datetime.now(tz.utc)
+    since = int((now - timedelta(days=days)).timestamp())
+    until = int(now.timestamp())
+
+    # ดึงข้อมูลเพจ
+    page_resp = requests.get(
+        f"https://graph.facebook.com/v19.0/{page_id}",
+        params={"fields": "name,fan_count,followers_count", "access_token": token}
+    ).json()
+
+    # Insights ตาม period ที่เลือก
+    period = "week" if days == 7 else "month" if days == 30 else "month"
+    insights_resp = requests.get(
+        f"https://graph.facebook.com/v19.0/{page_id}/insights",
+        params={
+            "metric": "page_impressions,page_engaged_users,page_post_engagements",
+            "period": period,
+            "since": since,
+            "until": until,
+            "access_token": token
+        }
+    ).json()
+
+    # โพสต์ตามช่วงเวลา
+    post_limit = 20 if days == 7 else 40 if days == 30 else 80
+    posts_resp = requests.get(
+        f"https://graph.facebook.com/v19.0/{page_id}/posts",
+        params={
+            "fields": "id,message,created_time,likes.summary(true),comments.summary(true),shares,insights.metric(post_impressions_unique){values}",
+            "limit": post_limit,
+            "since": since,
+            "until": until,
+            "access_token": token
+        }
+    ).json()
+
+    # แปลง insights
+    insights = {}
+    for item in insights_resp.get("data", []):
+        key = item.get("name")
+        values = item.get("values", [])
+        insights[key] = values[-1].get("value", 0) if values else 0
+
+    # สรุปโพสต์ top 5
+    posts = posts_resp.get("data", [])
+    post_summaries = []
+    for p in posts[:10]:
+        likes = (p.get("likes") or {}).get("summary", {}).get("total_count", 0)
+        comments = (p.get("comments") or {}).get("summary", {}).get("total_count", 0)
+        shares = (p.get("shares") or {}).get("count", 0)
+        score = likes + comments * 2 + shares * 3
+        insight_values = ((p.get("insights") or {}).get("data") or [{}])[0].get("values", [])
+        impressions = insight_values[-1].get("value", 0) if insight_values else 0
+        post_summaries.append({
+            "message": str(p.get("message", ""))[:200],
+            "created_time": p.get("created_time", ""),
+            "likes": likes, "comments": comments, "shares": shares,
+            "impressions": impressions, "score": score
+        })
+    post_summaries.sort(key=lambda x: x["score"], reverse=True)
+
+    # ส่งให้ fb_insights agent วิเคราะห์
+    period_label = f"{days} วันล่าสุด"
+    context = f"""
+ข้อมูล Facebook Page: {page_resp.get('name', '')} (ช่วงเวลา: {period_label})
+- Followers: {page_resp.get('followers_count', 0):,}
+- Fan Count: {page_resp.get('fan_count', 0):,}
+- Impressions {period_label}: {insights.get('page_impressions', 0):,}
+- Engaged Users {period_label}: {insights.get('page_engaged_users', 0):,}
+- Post Engagements {period_label}: {insights.get('page_post_engagements', 0):,}
+
+โพสต์ที่ performance ดีที่สุดใน{period_label} (top 5):
+{chr(10).join([f"{i+1}. [{p['likes']}❤ {p['comments']}💬 {p['shares']}🔁 {p['impressions']}👁] {p['message'][:100]}" for i, p in enumerate(post_summaries[:5])])}
+"""
+
+    task = Task(
+        description=f"""วิเคราะห์ข้อมูล Facebook Insights ต่อไปนี้และตอบเป็นภาษาไทย:
+
+{context}
+
+ให้วิเคราะห์และตอบในรูปแบบนี้:
+
+**กลุ่มเป้าหมาย**
+(วิเคราะห์ว่าใครคือคนที่ engage กับเพจ จาก engagement pattern และ content)
+
+**Content ที่ Work**
+(pattern ของโพสต์ที่ได้ผลดี — tone, หัวข้อ, รูปแบบ)
+
+**เวลาที่ควรโพสต์**
+(แนะนำช่วงเวลาและวัน จากข้อมูลที่มี)
+
+**Content Ideas (3 ไอเดีย)**
+(ไอเดีย caption พร้อมโพสต์ 3 แบบ แตกต่าง tone กัน เหมาะกับร้านทำผม KUDOS)""",
+        expected_output="การวิเคราะห์ครบ 4 หัวข้อ เป็นภาษาไทย พร้อม content ideas ที่นำไปใช้ได้จริง",
+        agent=fb_insights
+    )
+
+    crew = Crew(agents=[fb_insights], tasks=[task], process=Process.sequential)
+    result = crew.kickoff()
+    return {"analysis": str(result), "stats": {"page": page_resp, "insights": insights, "top_posts": post_summaries[:5]}}
+
+
 # --- 📱 Facebook: โพสต์จากรูปในเครื่อง ---
 @app.post("/fb-post-local")
 async def fb_post_local(
     caption: str = Form(""),
     footer: str = Form(""),
     scheduled_time: str = Form(""),
+    post_to_ig: str = Form("false"),
     files: List[UploadFile] = File(...),
     _user: dict = Depends(get_current_user),
 ):
     from datetime import timezone
+    should_post_ig = post_to_ig.lower() == "true"
     page_id = os.environ.get("FB_PAGE_ID")
     access_token = os.environ.get("FB_PAGE_ACCESS_TOKEN")
+    ig_user_id = os.environ.get("IG_USER_ID", "")
     if not page_id or not access_token:
         return {"success": False, "error": "ไม่พบ FB_PAGE_ID หรือ FB_PAGE_ACCESS_TOKEN ใน .env"}
 
@@ -1187,10 +1396,15 @@ async def fb_post_local(
     resp = requests.post(f"https://graph.facebook.com/v19.0/{page_id}/feed", data=post_data)
     result = resp.json()
     if "id" in result:
+        ig_msg = ""
+        if should_post_ig and photo_ids:
+            raw_ids = [p["media_fbid"] for p in photo_ids]
+            ig_result = _post_to_instagram(ig_user_id, access_token, caption, raw_ids, scheduled_unix)
+            ig_msg = " + Instagram ✅" if ig_result["success"] else f" (IG ไม่สำเร็จ: {ig_result.get('error', '')})"
         if scheduled_unix:
             dt_str = datetime.fromisoformat(scheduled_time).strftime("%d/%m/%Y %H:%M")
-            return {"success": True, "post_id": result["id"], "message": f"ตั้งเวลาโพสต์สำเร็จ! จะโพสต์วันที่ {dt_str}"}
-        return {"success": True, "post_id": result["id"], "message": "โพสต์สำเร็จแล้ว!"}
+            return {"success": True, "post_id": result["id"], "message": f"ตั้งเวลาโพสต์สำเร็จ! จะโพสต์วันที่ {dt_str}{ig_msg}"}
+        return {"success": True, "post_id": result["id"], "message": f"โพสต์สำเร็จแล้ว!{ig_msg}"}
     fb_error = result.get("error", {})
     return {"success": False, "error": f"Facebook: {fb_error.get('message', str(result))}"}
 

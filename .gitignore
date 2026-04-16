@@ -46,6 +46,9 @@ __pycache__/
 *.pyo
 *.pyd
 
+# Local dev logs (not for repo)
+DEVLOG.md
+
 # Runtime data
 mission_logs.json
 

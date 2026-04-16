@@ -122,12 +122,29 @@ const facebookDepartments = [
 
 type Agent = { name: string; role: string; emoji: string; bio: string };
 type Department = { name: string; color: string; darkColor: string; agents: Agent[] };
-type SystemType = "gamedev" | "facebook" | "marketing";
+type SystemType = "home" | "gamedev" | "facebook" | "marketing";
 
-function MarketingTab({ api, token }: { api: string; token: string }) {
+function MarketingTab({ api, token, role }: { api: string; token: string; role: string }) {
   const [stats, setStats] = useState<Record<string, unknown> | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [analysis, setAnalysis] = useState<string>("");
+  const [analysisLoading, setAnalysisLoading] = useState(false);
+  const [analysisError, setAnalysisError] = useState("");
+  const [analysisDays, setAnalysisDays] = useState<7 | 30 | 90>(7);
+
+  const fetchAnalysis = async () => {
+    setAnalysisLoading(true);
+    setAnalysisError("");
+    setAnalysis("");
+    try {
+      const res = await fetch(`${api}/fb-insights-analysis?days=${analysisDays}`, { headers: { Authorization: `Bearer ${token}` } });
+      const data = await res.json();
+      if (data.error) { setAnalysisError(data.error); }
+      else { setAnalysis(data.analysis || ""); }
+    } catch { setAnalysisError("เชื่อมต่อ server ไม่ได้"); }
+    setAnalysisLoading(false);
+  };
 
   const fetchStats = async () => {
     setLoading(true);
@@ -277,14 +294,65 @@ function MarketingTab({ api, token }: { api: string; token: string }) {
           </div>
         </section>
         <section className="rounded-2xl border border-white/5 bg-white/[0.02] p-5">
-          <div className="flex items-center gap-2 mb-4">
-            <div className="w-1 h-4 rounded-full" style={{ backgroundColor: "#f59e0b" }} />
-            <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">🤖 AI Analyst & Strategy</p>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <div className="w-1 h-4 rounded-full" style={{ backgroundColor: "#f59e0b" }} />
+              <p className="text-[9px] font-black uppercase tracking-widest text-slate-400">🤖 AI Analyst & Strategy</p>
+            </div>
+            {role === "admin" && (
+              <div className="flex items-center gap-2">
+                <select
+                  value={analysisDays}
+                  onChange={(e) => setAnalysisDays(Number(e.target.value) as 7 | 30 | 90)}
+                  className="rounded-lg text-[8px] font-black uppercase tracking-widest px-2 py-1.5 outline-none"
+                  style={{ backgroundColor: "#ffffff08", color: "#94a3b8", border: "1px solid #ffffff10" }}
+                >
+                  <option value={7}>7 วัน</option>
+                  <option value={30}>1 เดือน</option>
+                  <option value={90}>3 เดือน</option>
+                </select>
+                <button
+                  onClick={fetchAnalysis}
+                  disabled={analysisLoading}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-black text-[8px] uppercase tracking-widest transition-all disabled:opacity-50"
+                  style={{ backgroundColor: "#a78bfa20", color: "#a78bfa", border: "1px solid #a78bfa30" }}
+                >
+                  {analysisLoading ? "⏳ กำลังวิเคราะห์..." : "✨ วิเคราะห์ Insights"}
+                </button>
+              </div>
+            )}
           </div>
-          <div className="py-8 text-center">
-            <p className="text-2xl mb-2">🤖</p>
-            <p className="text-slate-700 text-[9px] uppercase tracking-widest">Coming Soon</p>
-          </div>
+
+          {role !== "admin" ? (
+            <div className="py-8 text-center">
+              <p className="text-2xl mb-2">🔒</p>
+              <p className="text-slate-700 text-[9px] uppercase tracking-widest">Admin Only</p>
+            </div>
+          ) : analysisError ? (
+            <p className="text-red-400 text-[10px] px-1">{analysisError}</p>
+          ) : analysisLoading ? (
+            <div className="py-8 text-center">
+              <p className="text-slate-500 text-[9px] uppercase tracking-widest animate-pulse">AI กำลังอ่านข้อมูลและวิเคราะห์...</p>
+            </div>
+          ) : analysis ? (
+            <div className="space-y-1">
+              {analysis.split("\n").map((line, i) => {
+                const isHeader = line.startsWith("**") && line.endsWith("**");
+                return isHeader ? (
+                  <p key={i} className="text-[9px] font-black uppercase tracking-widest mt-3 mb-1" style={{ color: "#a78bfa" }}>
+                    {line.replace(/\*\*/g, "")}
+                  </p>
+                ) : line.trim() ? (
+                  <p key={i} className="text-[10px] text-slate-400 leading-relaxed">{line}</p>
+                ) : null;
+              })}
+            </div>
+          ) : (
+            <div className="py-8 text-center">
+              <p className="text-2xl mb-2">🤖</p>
+              <p className="text-slate-700 text-[9px] uppercase tracking-widest">กด "วิเคราะห์ Insights" เพื่อให้ AI อ่านข้อมูล</p>
+            </div>
+          )}
         </section>
       </div>
 
@@ -294,6 +362,164 @@ function MarketingTab({ api, token }: { api: string; token: string }) {
 
 type UserRole = "admin" | "mod" | "member";
 interface AuthUser { username: string; role: UserRole; token: string; }
+
+// ─── BENTO HOME ──────────────────────────────────────────────────────────────
+function BentoHome({ api, token, role, onNavigate }: {
+  api: string; token: string; role: string;
+  onNavigate: (system: string, agent?: string) => void;
+}) {
+  const [stats, setStats] = useState<Record<string, unknown> | null>(null);
+
+  useEffect(() => {
+    fetch(`${api}/marketing-stats`, { headers: { Authorization: `Bearer ${token}` } })
+      .then(r => r.json()).then(setStats).catch(() => {});
+  }, [api, token]);
+
+  const page = stats?.page as Record<string, unknown> | undefined;
+  const insights = stats?.insights as Record<string, number> | undefined;
+
+  const statCards = [
+    { label: "Followers", value: page?.followers_count, icon: "👥", color: "#1877F2" },
+    { label: "Reach 7d", value: insights?.page_impressions, icon: "👁", color: "#a78bfa" },
+    { label: "Engaged 7d", value: insights?.page_engaged_users, icon: "⚡", color: "#34d399" },
+    { label: "Engagements", value: insights?.page_post_engagements, icon: "💬", color: "#f59e0b" },
+  ];
+
+  const fbAgents = [
+    { name: "FB Writer", emoji: "✍️", desc: "เขียน caption" },
+    { name: "FB Commander", emoji: "📘", desc: "วางกลยุทธ์" },
+    { name: "FB Insights", emoji: "📊", desc: "วิเคราะห์ data" },
+    { name: "FB Planner", emoji: "📅", desc: "Content calendar" },
+    { name: "FB Visual", emoji: "🖼️", desc: "กำกับภาพ" },
+    { name: "FB Ads", emoji: "📣", desc: "Ad specialist" },
+  ];
+
+  return (
+    <div className="max-w-7xl mx-auto px-6 py-8">
+      {/* Greeting */}
+      <div className="mb-8">
+        <h1 className="text-5xl font-black tracking-tighter leading-none" style={{ color: "var(--text-main)" }}>
+          KUDOS<span style={{ color: "#1877F2" }}>.</span>
+        </h1>
+        <p className="text-[9px] uppercase tracking-[0.4em] mt-2" style={{ color: "var(--text-muted)" }}>
+          {page ? String(page.name) : "Xeno Command Center"} — Agent Dashboard
+        </p>
+      </div>
+
+      {/* Bento Grid */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+
+        {/* Brand Card — col-span-2 row-span-2 */}
+        <div className="col-span-2 row-span-2 rounded-3xl p-7 flex flex-col justify-between relative overflow-hidden"
+          style={{ background: "linear-gradient(135deg, #1877F215 0%, #1877F205 100%)", border: "1px solid #1877F230" }}>
+          <div className="absolute top-0 right-0 w-48 h-48 rounded-full opacity-5"
+            style={{ background: "#1877F2", filter: "blur(40px)", transform: "translate(30%, -30%)" }} />
+          <div>
+            <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl mb-4"
+              style={{ background: "#1877F220", border: "1px solid #1877F240" }}>📘</div>
+            <p className="text-[9px] uppercase tracking-widest mb-1" style={{ color: "#1877F2" }}>Facebook Hub</p>
+            <p className="font-black text-2xl" style={{ color: "var(--text-main)" }}>
+              {page ? String(page.name) : "KUDOS Page"}
+            </p>
+            <p className="text-[10px] mt-2" style={{ color: "var(--text-muted)" }}>
+              {page?.followers_count ? `${Number(page.followers_count).toLocaleString()} followers` : "Loading..."}
+            </p>
+          </div>
+          <button onClick={() => onNavigate("facebook")}
+            className="w-full py-3 rounded-2xl font-black text-[10px] uppercase tracking-widest transition-all mt-4"
+            style={{ background: "#1877F2", color: "#fff", boxShadow: "0 8px 24px #1877F240" }}>
+            📘 เปิด Facebook Hub →
+          </button>
+        </div>
+
+        {/* Stat Cards — 2x2 grid on right */}
+        {statCards.map((s) => (
+          <div key={s.label} className="rounded-2xl p-4 flex flex-col justify-between"
+            style={{ background: "var(--bg-card)", border: "1px solid var(--border-main)" }}>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[8px] uppercase tracking-widest" style={{ color: "var(--text-muted)" }}>{s.label}</span>
+              <span className="text-lg">{s.icon}</span>
+            </div>
+            <p className="text-2xl font-black" style={{ color: s.value !== undefined ? s.color : "var(--text-dim)" }}>
+              {s.value !== undefined ? Number(s.value).toLocaleString() : "—"}
+            </p>
+          </div>
+        ))}
+
+        {/* Quick Post Button */}
+        <div className="col-span-1 md:col-span-1 rounded-2xl p-5 flex flex-col items-center justify-center gap-3 cursor-pointer transition-all"
+          onClick={() => onNavigate("facebook")}
+          style={{ background: "var(--bg-card)", border: "1px solid var(--border-main)" }}
+          onMouseEnter={e => (e.currentTarget.style.borderColor = "#1877F250")}
+          onMouseLeave={e => (e.currentTarget.style.borderColor = "var(--border-main)")}>
+          <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-2xl"
+            style={{ background: "#1877F215", border: "1px solid #1877F230" }}>🚀</div>
+          <p className="text-[9px] font-black uppercase tracking-widest text-center" style={{ color: "var(--text-main)" }}>Quick Post</p>
+        </div>
+
+        {/* FB Agents Grid — col-span-3 */}
+        <div className="col-span-2 md:col-span-3 rounded-2xl p-5"
+          style={{ background: "var(--bg-card)", border: "1px solid var(--border-main)" }}>
+          <p className="text-[8px] uppercase tracking-widest mb-4" style={{ color: "var(--text-muted)" }}>Facebook Agents</p>
+          <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+            {fbAgents.map((a) => (
+              <button key={a.name} onClick={() => onNavigate("facebook", a.name)}
+                className="rounded-xl p-3 text-center transition-all"
+                style={{ background: "#1877F208", border: "1px solid #1877F215" }}
+                onMouseEnter={e => (e.currentTarget.style.background = "#1877F218")}
+                onMouseLeave={e => (e.currentTarget.style.background = "#1877F208")}>
+                <div className="text-2xl mb-1">{a.emoji}</div>
+                <p className="text-[7px] font-black uppercase tracking-wide truncate" style={{ color: "var(--text-main)" }}>{a.name.replace("FB ", "")}</p>
+                <p className="text-[7px] mt-0.5" style={{ color: "var(--text-muted)" }}>{a.desc}</p>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Marketing Card */}
+        {(role === "admin" || role === "mod") && (
+          <div className="col-span-2 md:col-span-2 rounded-2xl p-5 cursor-pointer transition-all"
+            onClick={() => onNavigate("marketing")}
+            style={{ background: "linear-gradient(135deg, #f59e0b10 0%, #f59e0b05 100%)", border: "1px solid #f59e0b25" }}
+            onMouseEnter={e => (e.currentTarget.style.borderColor = "#f59e0b50")}
+            onMouseLeave={e => (e.currentTarget.style.borderColor = "#f59e0b25")}>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl"
+                style={{ background: "#f59e0b20" }}>📊</div>
+              <div>
+                <p className="text-[8px] uppercase tracking-widest" style={{ color: "#f59e0b" }}>Marketing</p>
+                <p className="font-black text-sm" style={{ color: "var(--text-main)" }}>Insights & Analytics</p>
+              </div>
+            </div>
+            <p className="text-[9px]" style={{ color: "var(--text-muted)" }}>AI วิเคราะห์ Insights, top posts, content ideas</p>
+            <p className="text-[8px] font-black mt-3" style={{ color: "#f59e0b" }}>เปิด Dashboard →</p>
+          </div>
+        )}
+
+        {/* GameDev Card — admin only */}
+        {role === "admin" && (
+          <div className="col-span-2 md:col-span-2 rounded-2xl p-5 cursor-pointer transition-all"
+            onClick={() => onNavigate("gamedev")}
+            style={{ background: "linear-gradient(135deg, #7c3aed10 0%, #7c3aed05 100%)", border: "1px solid #7c3aed25" }}
+            onMouseEnter={e => (e.currentTarget.style.borderColor = "#7c3aed50")}
+            onMouseLeave={e => (e.currentTarget.style.borderColor = "#7c3aed25")}>
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl"
+                style={{ background: "#7c3aed20" }}>🎮</div>
+              <div>
+                <p className="text-[8px] uppercase tracking-widest" style={{ color: "#a78bfa" }}>Game Studio</p>
+                <p className="font-black text-sm" style={{ color: "var(--text-main)" }}>Xeno Game Dev</p>
+              </div>
+            </div>
+            <p className="text-[9px]" style={{ color: "var(--text-muted)" }}>48 agents, game design, code, art, audio</p>
+            <p className="text-[8px] font-black mt-3" style={{ color: "#a78bfa" }}>เปิด Studio →</p>
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+}
 
 function LoginScreen({ onLogin }: { onLogin: (user: AuthUser) => void }) {
   const [username, setUsername] = useState("");
@@ -371,7 +597,7 @@ function LoginScreen({ onLogin }: { onLogin: (user: AuthUser) => void }) {
 export default function Home() {
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
-  const [activeSystem, setActiveSystem] = useState<SystemType>("gamedev");
+  const [activeSystem, setActiveSystem] = useState<SystemType>("home");
   const [command, setCommand] = useState("");
   const [result, setResult] = useState("");
   const [loading, setLoading] = useState(false);
@@ -413,6 +639,7 @@ export default function Home() {
   const [localPreviews, setLocalPreviews] = useState<string[]>([]);
   const [fbPostLoading, setFbPostLoading] = useState(false);
   const [fbPostResult, setFbPostResult] = useState<{ success: boolean; message: string } | null>(null);
+  const [postToIG, setPostToIG] = useState(false);
   const [fbSmartLoading, setFbSmartLoading] = useState(false);
   const [fbSmartReason, setFbSmartReason] = useState("");
   const [fbRemaining, setFbRemaining] = useState<number | null>(null);
@@ -429,6 +656,39 @@ export default function Home() {
   const [driveNextToken, setDriveNextToken] = useState("");
   const [driveCurrentToken, setDriveCurrentToken] = useState("");
   const [drivePrevTokens, setDrivePrevTokens] = useState<string[]>([]);
+  const [fontSize, setFontSize] = useState<number>(14);
+  const [showFontPicker, setShowFontPicker] = useState(false);
+  const [customFont, setCustomFont] = useState("");
+  const [isDark, setIsDark] = useState(true);
+
+  useEffect(() => {
+    const savedFont = localStorage.getItem("xeno_font_size");
+    if (savedFont) {
+      const size = Number(savedFont);
+      setFontSize(size);
+      document.documentElement.style.fontSize = `${size}px`;
+    }
+    const savedMode = localStorage.getItem("xeno_color_mode");
+    if (savedMode === "light") {
+      setIsDark(false);
+      document.documentElement.classList.add("light");
+    }
+  }, []);
+
+  useEffect(() => {
+    document.documentElement.style.fontSize = `${fontSize}px`;
+    localStorage.setItem("xeno_font_size", String(fontSize));
+  }, [fontSize]);
+
+  useEffect(() => {
+    if (isDark) {
+      document.documentElement.classList.remove("light");
+      localStorage.setItem("xeno_color_mode", "dark");
+    } else {
+      document.documentElement.classList.add("light");
+      localStorage.setItem("xeno_color_mode", "light");
+    }
+  }, [isDark]);
 
   useEffect(() => {
     setMounted(true);
@@ -441,7 +701,7 @@ export default function Home() {
         .then((data) => {
           if (data.username) {
             setAuthUser({ username: data.username, role: data.role, token: savedToken });
-            if (data.role !== "admin") setActiveSystem("facebook");
+            setActiveSystem("home");
           }
         })
         .catch(() => {})
@@ -684,6 +944,7 @@ export default function Home() {
         const formData = new FormData();
         formData.append("caption", fbCaption);
         formData.append("footer", fullFooter);
+        formData.append("post_to_ig", String(postToIG));
         if (scheduleEnabled && scheduledTime) formData.append("scheduled_time", scheduledTime);
         localFiles.forEach((f) => formData.append("files", f));
         const res = await authFetch(`${API}/fb-post-local`, { method: "POST", body: formData });
@@ -692,11 +953,12 @@ export default function Home() {
       } else {
         // --- Drive flow (เดิม) ---
         const selectedNames = selectedImageIds.map((id) => driveImages.find((i) => i.id === id)?.name ?? "");
-        const body: Record<string, string | null> = {
+        const body: Record<string, string | boolean | null> = {
           caption: fbCaption,
           footer: fullFooter,
           file_ids: JSON.stringify(selectedImageIds),
           file_names: JSON.stringify(selectedNames),
+          post_to_ig: postToIG,
         };
         if (scheduleEnabled && scheduledTime) body.scheduled_time = scheduledTime;
         const res = await authFetch(`${API}/fb-post`, {
@@ -734,11 +996,13 @@ export default function Home() {
   const dept = getDept(selectedAgent);
 
   // Theme colors per system
-  const theme = {
-    gamedev: { accent: "#7c3aed", accentLight: "#a78bfa", label: "GAME DEV", icon: "🎮" },
-    facebook: { accent: "#1877F2", accentLight: "#00B2FF", label: "FACEBOOK", icon: "📘" },
+  const themeMap = {
+    home:      { accent: "#1877F2", accentLight: "#00B2FF", label: "HOME", icon: "🏠" },
+    gamedev:   { accent: "#7c3aed", accentLight: "#a78bfa", label: "GAME DEV", icon: "🎮" },
+    facebook:  { accent: "#1877F2", accentLight: "#00B2FF", label: "FACEBOOK", icon: "📘" },
     marketing: { accent: "#f59e0b", accentLight: "#fcd34d", label: "MARKETING", icon: "📊" },
-  }[activeSystem];
+  };
+  const theme = themeMap[activeSystem];
 
   const outputBorderColor = activeSystem === "facebook" ? "#1877F2" : "#7c3aed";
   const outputBgColor = activeSystem === "facebook" ? "#1877F2" : "#7c3aed";
@@ -747,9 +1011,9 @@ export default function Home() {
   if (!authUser) return <LoginScreen onLogin={(u) => { setAuthUser(u); if (u.role !== "admin") setActiveSystem("facebook"); }} />;
 
   return (
-    <main className="min-h-screen bg-[#08080f] text-slate-200" style={{ fontFamily: "'Courier New', monospace" }}>
+    <main className="min-h-screen" style={{ fontFamily: "'Courier New', monospace", background: "var(--bg-main)", color: "var(--text-main)", transition: "background 0.3s ease, color 0.3s ease" }}>
       {/* HEADER */}
-      <header className="sticky top-0 z-50 bg-[#08080f]/95 backdrop-blur border-b border-white/5">
+      <header className="sticky top-0 z-50 backdrop-blur border-b" style={{ background: "var(--bg-header)", borderColor: "var(--border-main)", transition: "background 0.3s ease" }}>
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div
@@ -794,6 +1058,70 @@ export default function Home() {
                 {mounted ? currentTime.toLocaleTimeString() : ""}
               </div>
             </div>
+            {/* Dark/Light Mode Toggle */}
+            <button
+              onClick={() => setIsDark(!isDark)}
+              className="w-8 h-8 rounded-lg flex items-center justify-center text-base transition-all"
+              style={{ background: "var(--bg-card)", border: "1px solid var(--border-main)" }}
+              title={isDark ? "เปลี่ยนเป็น Light Mode" : "เปลี่ยนเป็น Dark Mode"}
+            >
+              {isDark ? "🌙" : "☀️"}
+            </button>
+
+            {/* Font Size Control */}
+            <div className="relative">
+              <button
+                onClick={() => setShowFontPicker(!showFontPicker)}
+                className="px-3 py-1.5 rounded-lg font-black text-[8px] uppercase tracking-widest transition-all"
+                style={{ background: "#ffffff08", color: "#64748b", border: "1px solid #ffffff10" }}
+                title="ปรับขนาดตัวอักษร"
+              >
+                Aa {fontSize}
+              </button>
+              {showFontPicker && (
+                <div className="absolute right-0 top-full mt-2 z-50 rounded-xl border border-white/10 bg-[#0f0f1a] p-3 shadow-2xl w-48">
+                  <p className="text-[7px] uppercase tracking-widest text-slate-600 mb-2">ขนาดตัวอักษร</p>
+                  <div className="flex gap-1.5 mb-3">
+                    {[14, 17, 20, 25].map((s) => (
+                      <button
+                        key={s}
+                        onClick={() => { setFontSize(s); setShowFontPicker(false); }}
+                        className="flex-1 py-1.5 rounded-lg font-black text-[8px] transition-all"
+                        style={{
+                          backgroundColor: fontSize === s ? "#a78bfa20" : "#ffffff08",
+                          color: fontSize === s ? "#a78bfa" : "#64748b",
+                          border: `1px solid ${fontSize === s ? "#a78bfa40" : "#ffffff10"}`,
+                        }}
+                      >
+                        {s}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="flex gap-1.5">
+                    <input
+                      type="number"
+                      placeholder="กำหนดเอง"
+                      value={customFont}
+                      onChange={(e) => setCustomFont(e.target.value)}
+                      min={10} max={40}
+                      className="flex-1 rounded-lg px-2 py-1.5 text-[8px] outline-none"
+                      style={{ background: "#ffffff08", color: "#94a3b8", border: "1px solid #ffffff10" }}
+                    />
+                    <button
+                      onClick={() => {
+                        const v = Number(customFont);
+                        if (v >= 10 && v <= 40) { setFontSize(v); setCustomFont(""); setShowFontPicker(false); }
+                      }}
+                      className="px-2 py-1.5 rounded-lg font-black text-[8px]"
+                      style={{ backgroundColor: "#a78bfa20", color: "#a78bfa", border: "1px solid #a78bfa30" }}
+                    >
+                      OK
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+
             <div className="flex items-center gap-2 pl-4 border-l border-white/10">
               <div className="text-right">
                 <div className="text-[9px] font-black text-white uppercase tracking-widest">{authUser?.username}</div>
@@ -811,16 +1139,38 @@ export default function Home() {
         </div>
       </header>
 
-      <div className="max-w-7xl mx-auto px-6 py-10">
+      {/* BENTO HOME */}
+      {activeSystem === "home" && (
+        <BentoHome
+          api={API}
+          token={authUser?.token || ""}
+          role={authUser?.role || ""}
+          onNavigate={(system, agentName) => {
+            handleSystemSwitch(system as SystemType);
+            // ถ้าส่ง agent name มา ให้ auto-select agent นั้น
+            if (agentName) {
+              const allAgents = departments.flatMap(d => d.agents);
+              const found = allAgents.find(a => a.name === agentName);
+              if (found) setSelectedAgent(found);
+            }
+          }}
+        />
+      )}
+
+      <div className={`max-w-7xl mx-auto px-6 py-10 ${activeSystem === "home" ? "hidden" : ""}`}>
         {/* TITLE */}
-        <div className="mb-8">
-          <h1 className="text-7xl md:text-9xl font-black tracking-tighter text-white leading-none">
-            {activeSystem === "gamedev" ? "Studio" : "Xeno AI"}
-            <span style={{ color: theme.accent }}>.</span>
-          </h1>
-          <p className="text-slate-600 text-xs tracking-[0.4em] uppercase mt-3">
-            Select your agent — deploy your mission
-          </p>
+        <div className="mb-8 flex items-center gap-4">
+          <button onClick={() => setActiveSystem("home")}
+            className="text-[8px] uppercase tracking-widest px-3 py-1.5 rounded-lg transition-all"
+            style={{ background: "var(--bg-card)", color: "var(--text-muted)", border: "1px solid var(--border-main)" }}>
+            ← Home
+          </button>
+          <div>
+            <h1 className="text-4xl font-black tracking-tighter leading-none" style={{ color: "var(--text-main)" }}>
+              {activeSystem === "gamedev" ? "Studio" : activeSystem === "marketing" ? "Marketing" : "Facebook"}
+              <span style={{ color: theme.accent }}>.</span>
+            </h1>
+          </div>
         </div>
 
         {/* SYSTEM MENU TABS */}
@@ -1474,6 +1824,11 @@ export default function Home() {
                   </div>
                 )}
                 <div className="flex items-center gap-3 mb-4">
+                  <button onClick={() => setPostToIG(!postToIG)}
+                    className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest px-4 py-2 rounded-lg transition-all"
+                    style={{ backgroundColor: postToIG ? "#E1306C20" : "rgba(255,255,255,0.03)", border: `1px solid ${postToIG ? "#E1306C60" : "rgba(255,255,255,0.06)"}`, color: postToIG ? "#E1306C" : "#475569" }}>
+                    📸 {postToIG ? "FB + IG" : "+ Instagram"}
+                  </button>
                   <button onClick={() => { setScheduleEnabled(!scheduleEnabled); setScheduledTime(""); }}
                     className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest px-4 py-2 rounded-lg transition-all"
                     style={{ backgroundColor: scheduleEnabled ? "#1877F220" : "rgba(255,255,255,0.03)", border: `1px solid ${scheduleEnabled ? "#1877F260" : "rgba(255,255,255,0.06)"}`, color: scheduleEnabled ? "#1877F2" : "#475569" }}>
@@ -1493,7 +1848,7 @@ export default function Home() {
                   <button onClick={handleFbPost} disabled={fbPostLoading || !fbCaption || (scheduleEnabled && !scheduledTime)}
                     className="flex items-center gap-3 px-10 py-4 rounded-xl font-black text-sm uppercase tracking-widest transition-all disabled:opacity-30"
                     style={{ backgroundColor: "#1877F2", color: "#fff", boxShadow: "0 6px 24px #1877F240" }}>
-                    {fbPostLoading ? (scheduleEnabled ? "กำลังตั้งเวลา..." : "กำลังโพสต์...") : scheduleEnabled ? "📅 Schedule Post" : "📘 Post to Facebook"}
+                    {fbPostLoading ? (scheduleEnabled ? "กำลังตั้งเวลา..." : "กำลังโพสต์...") : scheduleEnabled ? `📅 Schedule${postToIG ? " FB+IG" : ""}` : postToIG ? "📘📸 Post FB + IG" : "📘 Post to Facebook"}
                   </button>
                   {fbCaption && (
                     <button onClick={() => { setFbCaption(""); setFbPrompt(""); setSelectedImageIds([]); setLocalFiles([]); setLocalPreviews([]); setFbPostResult(null); setScheduleEnabled(false); setScheduledTime(""); }}
@@ -1595,7 +1950,7 @@ export default function Home() {
 
       {/* MARKETING SETUP */}
       {activeSystem === "marketing" && (
-        <MarketingTab api={API} token={authUser?.token || ""} />
+        <MarketingTab api={API} token={authUser?.token || ""} role={authUser?.role || ""} />
       )}
 
       <footer className="py-10 text-center text-[8px] uppercase tracking-[1em] text-slate-800">
