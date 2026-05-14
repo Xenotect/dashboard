@@ -114,7 +114,7 @@ app = FastAPI()
 
 _ALLOWED_ORIGINS = os.environ.get(
     "ALLOWED_ORIGINS",
-    "http://localhost:3000,http://localhost:3001"
+    "http://localhost:3000,http://localhost:3001,https://xeno-kudos.vercel.app,https://dashboard-45l35q1fv-yuuyuuyuuwanich-6252s-projects.vercel.app"
 ).split(",")
 
 app.add_middleware(
