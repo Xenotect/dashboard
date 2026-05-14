@@ -809,8 +809,8 @@ async def fb_smart_post(data: dict, _user: dict = Depends(get_current_user)):
     content = []
     valid_images = []
 
-    for img in available[:8]:
-        thumbnail_url = f"https://drive.google.com/thumbnail?id={img['id']}&sz=w400"
+    for img in available[:4]:
+        thumbnail_url = f"https://drive.google.com/thumbnail?id={img['id']}&sz=w200"
         try:
             img_resp = requests.get(thumbnail_url, timeout=10)
             if img_resp.status_code == 200:
