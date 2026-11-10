@@ -13,5 +13,10 @@
     "username": "member",
     "password": "$2b$12$yrHxRaBltjscAzeSOF20cO7rpNdw.GgIpfi.p9BztS4yRMKIGf8.i",
     "role": "member"
+  },
+  {
+    "username": "bank",
+    "password": "$2b$12$5rgUt6t7gVo8YkIRXEv1JuzSgJg4VlNB1WZ4wWGJu6/Qu5/HiFwXi",
+    "role": "member"
   }
 ]
